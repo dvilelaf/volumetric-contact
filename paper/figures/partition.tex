@@ -1,0 +1,32 @@
+% A polygon of the contact surface split by the face where its columns end, and cut where g = 0.
+\begin{tikzpicture}[scale=1.0, font=\footnotesize, >=Stealth]
+  % Polygon (a face fragment), seen along n.
+  \coordinate (v1) at (0,0);
+  \coordinate (v2) at (5.2,0.2);
+  \coordinate (v3) at (5.8,2.6);
+  \coordinate (v4) at (2.6,3.6);
+  \coordinate (v5) at (-0.4,2.4);
+  % Interior point where the three affine functions are equal, and the points where the
+  % dividing lines leave the polygon.
+  \coordinate (c) at (2.7,1.7);
+  \coordinate (e1) at ($(v1)!0.52!(v2)$);
+  \coordinate (e2) at ($(v3)!0.45!(v4)$);
+  \coordinate (e3) at ($(v5)!0.3!(v1)$);
+  \fill[gray!10] (v1) -- (e1) -- (c) -- (e3) -- cycle;
+  \fill[gray!25] (e1) -- (v2) -- (v3) -- (e2) -- (c) -- cycle;
+  \fill[gray!40] (c) -- (e2) -- (v4) -- (v5) -- (e3) -- cycle;
+  \draw[thick] (v1) -- (v2) -- (v3) -- (v4) -- (v5) -- cycle;
+  \draw (c) -- (e1) node[below right, inner sep=2pt] {$\ell_1 = \ell_2$};
+  \draw (c) -- (e2) node[above, inner sep=2pt] {$\ell_2 = \ell_3$};
+  \draw (c) -- (e3) node[left] {$\ell_1 = \ell_3$};
+  \node at (1.5,0.9) {$\ell = \ell_1$};
+  \node at (4.4,1.3) {$\ell = \ell_2$};
+  \node at (1.6,2.75) {$\ell = \ell_3$};
+  % Line g = 0 cutting a corner.
+  \coordinate (g1) at ($(v1)!0.2!(v2)$);
+  \coordinate (g2) at ($(v1)!0.45!(v5)$);
+  \draw[densely dashed, thick] ($(g1)!1.25!(g2)$) -- ($(g1)!-0.3!(g2)$) node[below, inner sep=2pt] {$g = 0$};
+  \fill[white, opacity=0.75] (g1) -- (v1) -- (g2) -- cycle;
+  \draw[thick] (g1) -- (v1) -- (g2);
+  \node[anchor=east] at (-0.3,0.3) {$p = 0$};\draw[thin] (-0.3,0.3) -- (0.2,0.35);
+\end{tikzpicture}

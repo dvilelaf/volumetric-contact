@@ -1,0 +1,147 @@
+\section{The benchmark}\label{sec:benchmark}
+
+% Describes the battery as specified in docs/scenarios.md at the commit of the battery run,
+% scripts/bench.sh (run matrix, time limits) and tools/stats.py (statistics). Re-check against
+% those files if the battery changes. Table 2 is transcribed from docs/scenarios.md §4: design
+% parameters, not results.
+
+The battery is a set of scenarios, each with a set-up, a reference solution and an error
+measure, written once against an engine-independent interface and run on every engine with every
+contact method.
+
+\subsection{What a reference rests on: classes A, B and C}\label{sec:classes}
+
+Every scenario is classified by what its reference rests on.
+\begin{description}
+\item[Class A] A rigid-body result that does not depend on the contact model: the acceleration
+  of a block on an incline, the time at which a sliding ball starts to roll, the period of a
+  ball rolling in a bowl, a wedge that must hold if and only if $\tan\alpha < \mu$. Only these
+  scenarios compare a compliant law with a contact model of another kind on equal terms.
+\item[Class B] A reference that assumes a pressure distribution: the stop time of a spinning
+  disk, ring or cone, the coupled sliding and spinning of a disk, a journal in a bearing without
+  clearance. The nominal reference uses the distribution that a rigid body produces on a Winkler
+  foundation (uniform for flat faces, a cosine for the journal), so agreement with it is in part
+  agreement with the model under test. Other distributions are defensible: uniform wear, the
+  rigid punch on an elastic half-space, a line contact. The part of the reference that does not
+  depend on the model is the \emph{band} spanned by those distributions: for the disk, the
+  friction torque over $\mu N R$ is $2/3$ for uniform pressure, $1/2$ for uniform wear and
+  $\pi/4$ for the rigid punch. A method inside the band is not wrong.
+\item[Class C] Consistency with the Winkler foundation. The reference contains $K$ or
+  integrates the law's own force: the penetrations of a stack, the tilt of an eccentric load,
+  the angle at which a tall box tips over a soft support, the rebound of an impact governed by
+  the law's own differential equation, the depth reached in a press fit. These scenarios say
+  whether a method is a Winkler foundation of stiffness $K$. They do not say whether a method is
+  accurate, and they are never used to compare the laws with contact models of another kind.
+\end{description}
+
+\subsection{The scenarios}\label{sec:scenarios}
+
+Table~\ref{tab:scenarios} lists the \result{battery/scenarios} scenarios with the quantity that
+each one measures; Appendix~\ref{app:scenarios} gives their parameters and references, and the
+specification in the repository the dimensions, the mesh criteria and the derivation of each
+reference. Four rules hold for all of them. Parameters are fixed before any run, and a scenario
+is not changed because a method scores badly on it; the foundations have $K$ between $10^6$ and
+$10^8$\,N/m$^3$ and $h = 5$\,s/m. Initial conditions belong to no model: a body that starts in
+contact penetrates 1\,\textmu m whatever the method. The reference covers only what it can: the
+scenarios of a body rolling on a plane measure what the rigid theory fixes whatever the rolling
+resistance of the foundation is (the acceleration at zero speed, the onset of rolling). And the
+curved meshes approximate the solid from the inside, with 64 segments per turn in the base
+variant; each flat cap of a cylinder, a disk or a frustum is one polygon triangulated as a fan
+from one of its rim vertices, and each planar ground is a slab with two triangles per face.
+
+\begin{table}[p]
+\caption{The scenarios, by class. $^{2}$: second set (Section~\ref{sec:variants}). For class B
+the band of admissible pressure distributions is given as the factor on the nominal stop time}
+\label{tab:scenarios}
+\footnotesize
+\begin{tabular}{@{}lp{0.47\linewidth}p{0.36\linewidth}@{}}
+\toprule
+Scenario & Set-up & Measured against the reference \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Class A: rigid-body references}} \\
+\scn{block} & Box sliding down a $30^\circ$ incline & Final velocity \\
+\scn{cylinder} & Cylinder rolling down $15^\circ$ from rest & Acceleration at zero speed, slip \\
+\scn{sphere} & Sphere rolling down $20^\circ$ from rest & Acceleration at zero speed, slip \\
+\scn{push} & Box pushed by a slowly growing force & Onset of sliding, velocity, creep before it \\
+\scn{billiard} & Ball launched sliding, without spin & Time and velocity at which rolling starts \\
+\scn{vgroove} & Box sliding in a $90^\circ$ groove tilted $30^\circ$ & Final velocity \\
+\scn{twoblocks} & Block on a block on a $30^\circ$ incline & Common velocity, no relative slip \\
+\scn{bowl} & Ball rolling in a spherical bowl & Period, amplitude (constant) \\
+\scn{trough} & Cylinder rolling in a cylindrical trough & Period, amplitude (constant) \\
+\scn{journal} & Shaft spinning in a hole with clearance & Stop time, angle of climb \\
+\scn{pieces1}, \scn{2}, \scn{8}, \scn{64}$^{2}$ & Sliding and spinning boxes on a table cut into 1, 2, 8 and 64 pieces & Travel, stop time, no drift; same final poses on every cut \\
+\scn{wedge}$^{2}$ & Two blocks on a plane tilted slowly; one must hold, one slide & Creep, residual speed, sliding velocity \\
+\scn{oblique}$^{2}$ & Spheres hitting a plane obliquely, sliding and sticking & Velocities and spins after the impact \\
+\scn{edge}$^{2}$ & Box sliding off the edge of a table & Times at which it has pitched 0.1 and 0.25\,rad \\
+\scn{turntable}$^{2}$ & Ball rolling on a free rotating table & Orbit rate, orbit radius (constant) \\
+\scn{energy}$^{2}$ & Frictionless, undamped ball sliding in a faceted bowl & Period, drift of the energy \\
+\scn{tower}$^{2}$ & Ten stacked blocks, gravity tilted to $5^\circ$ & Nothing moves: creep, residual speed \\
+\scn{massratio}$^{2}$ & A 1\,kg block under a 1000\,kg block & Nothing moves: creep, residual speed \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Class B: references that assume a pressure distribution}} \\
+\scn{disk} & Disk spinning flat on a plane & Stop time (band 0.85--1.33) \\
+\scn{contensou} & Disk sliding and spinning & Stop time (band 0.95--1.12) \\
+\scn{ring} & Annulus spinning flat & Stop time (band 1--1.02) \\
+\scn{bearing} & Shaft spinning in a hole of its own radius & Stop time (band 0.81--1.27) \\
+\scn{cone} & Frustum spinning in a conical seat & Stop time (band 1--1.04) \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Class C: consistency with the Winkler foundation}} \\
+\scn{tip} & Tall box, gravity tilted slowly & Tipping angle on the foundation \\
+\scn{drop} & Box dropped flat & Rebound velocity of the law's impact equation \\
+\scn{hole} & Cube entering a square hole with interference & Depth at which friction stops it \\
+\scn{corner} & Cube pressed into a corner & Penetrations on the three faces \\
+\scn{offset} & Plate with an eccentric centre of mass & Tilt at rest \\
+\scn{stack} & Three cubes, gravity tilted to $5^\circ$ & Compressions; creep \\
+\scn{restitution}$^{2}$ & Spheres hitting a plane at four speeds & Rebounds of the law's impact equation \\
+\botrule
+\end{tabular}
+\end{table}
+
+\subsection{The error of a run}\label{sec:error}
+
+The error of a run is the worst normalized deviation of every quantity that the reference
+fixes, and not of the main result alone, so that a box that creeps before the onset of sliding
+and then reaches the right velocity is not scored as correct. A value with a non-zero reference
+is normalized by that reference, and a quantity that the reference keeps at zero (creep, drift,
+relative slip, residual speed) by a length or a speed of the body. A run \emph{holds} when it
+finishes with an error below 100\,\%; it is \emph{lost} when the error is larger (bodies thrown
+apart or sliding away), and it has \emph{no value} when it diverges, exceeds its time limit or
+never produces a quantity of the reference (a body that never stopped or never tipped). The
+battery records the size of each term and not its sign, so for class B a run is known to be
+inside the band when its error is below the narrow side of the band, outside when it is above
+the wide side, and undetermined in between. Errors are not commensurable across scenarios:
+methods are compared within a scenario, and summaries across scenarios use counts at fixed
+thresholds and ratios of the errors of two methods on the same scenario, never means of errors.
+
+\subsection{Variants, methods and native models}\label{sec:variants}\label{sec:natives}
+
+Every scenario is run in a base variant (64 segments per turn, $\dt = 1$\,ms) and in series:
+the step ($\dt = 2$, 0.5, 0.2 and 0.1\,ms), the mesh (32 and 128 segments per turn, for the
+scenarios with curved surfaces), the stiffness ($K\times10$ at $\dt = 0.2$\,ms, not for class
+C) and eight perturbations of the initial velocities. The matrix is run with the six methods of
+the library on each of the three engines (\law{gonthier}, \law{gonthier-thesis},
+\law{distributed}, its two friction quadratures and \law{pcm}) and with six native models, each
+with a wall-clock limit. Twenty-one scenarios were written while the laws were being developed;
+the other twelve, the \emph{second set}, were written with their references before any law was
+run on them, and the laws were changed after their first run (Section~\ref{sec:limitations}).
+
+The native models stand for three families, and the results are read by family. \emph{Point
+contact}: Drake's compliant point contact, Chrono's penalty model on a collision manifold (SMC)
+and MuJoCo's soft constraints with its recommended and with its default parameters; a contact
+between two faces is a few points with a stiffness in N/m, so a pressure distribution over the
+face is not part of the model. \emph{Complementarity contact}: Chrono NSC, rigid contact with
+Coulomb friction, in which $K$ and $h$ do not enter, so class C does not apply to it.
+\emph{Pressure-field contact}: Drake hydroelastic, configured with a modulus $E = K H$ so that
+the pressure is $K$ times the depth; it is then the same pressure model as the two laws near
+the surface, evaluated on tetrahedral fields, and its comparison with \law{distributed} is one
+of two discretizations. Each model has one configuration for every scenario, built from the
+engine's documentation \cite{DrakeHydroGuide,DrakeHydroParams,DrakePointContact,DrakeFoamBrick,
+ChronoCollisions,ChronoSMCSource,ChronoSystem,Barzilai1988,MuJoCoDocs,MuJoCoModeling}; the
+configurations are ours and were not reviewed by the developers of the engines, so the main
+text draws from the native runs only what follows from a property of the model family, and
+Section~S3 gives the configurations and every other result, labelled as results of our
+configurations. In the tables the methods are abbreviated Gon (\law{gonthier}), G18
+(\law{gonthier-thesis}), Dis (\law{distributed}), Dis-v and Dis-1 (its vertex and one-point
+friction rules), PCM, Dr-h and Dr-p (Drake hydroelastic and point), Ch-S and Ch-N (Chrono SMC
+and NSC) and Mj-s and Mj-d (MuJoCo soft and default); the methods of the library are shown by
+their runs on Chrono.

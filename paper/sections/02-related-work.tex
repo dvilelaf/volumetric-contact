@@ -1,0 +1,148 @@
+\section{Related work}\label{sec:related}
+
+% How each source was read (full text, or metadata only with its content taken from a named
+% secondary source) is recorded in docs/research/literature.md. Statements about papers that
+% were not read in full are limited to what their titles and abstracts say or are attributed
+% to the secondary source.
+
+\paragraph{Elastic-foundation models on surface meshes.} The elastic (Winkler) foundation
+replaces the elastic half-space by a layer of independent springs, so that the pressure at a
+point depends only on the local compression \cite{Johnson1985}; biomechanics has long used it
+with one spring per element of a discretized surface \cite{Blankevoort1991,Fregly2003}. In
+multibody dynamics its best-known form is Hippmann's polygonal contact model (PCM)
+\cite{Hippmann2004,Hippmann2024}: every triangle of one surface whose centroid lies inside the
+other body is a contact element, with a force equal to a layer stiffness in N/m$^3$ times its
+area and its penetration along its own normal, an area-related damping and a regularized
+friction per element; it has been applied to geometries as demanding as rolling bearings with
+defects \cite{Vehvilainen2024}. Simbody's elastic foundation force
+\cite{Sherman2011,SimbodyEFF} places one spring at the centre of each face; its friction is a
+continuous function of the slip velocity and, as its documentation says, cannot represent
+stiction. The normal law of this paper is the same as these, with the same unit of stiffness.
+What differs is the quadrature: these models sample the foundation once per face, so whole
+faces switch on and off and planar regions must be meshed finely \cite{Hippmann2024}; in
+exchange they handle non-convex shapes directly and measure the depth along local normals,
+which suits curved conforming contact.
+
+\paragraph{Volumetric models.} Gonthier, McPhee, Lange and Piedb{\oe}uf \cite{Gonthier2005}
+integrate the Winkler foundation over a contact surface that is flat or nearly so, and obtain
+the normal force, the rolling resistance and the friction in terms of the volume, the centroid
+and the inertia tensor of the overlap of the undeformed bodies, with a hysteretic damping factor
+(our $h$) from the same authors' regularized point model \cite{Gonthier2004}. Gonthier's thesis
+\cite{Gonthier2007thesis} is the complete statement: Coulomb friction with the sliding force and
+the spinning torque sharing one budget through an average surface velocity, and a bristle model
+for stick--slip \cite{Gonthier2007detc}; the overlap is approximated there with voxels. The
+model has been used with closed-form volumes of simple shapes, validated experimentally for the
+normal force \cite{Boos2013}, applied to foot--ground contact \cite{Shourijeh2015,Brown2018} and
+to wheel--soil interaction \cite{Petersen2013}, and given a damping based on material
+properties \cite{Roy2012}. The 2018 thesis behind this paper \cite{Vilela2018} evaluated it on
+the exact intersection of triangle meshes and compared it with inner sphere trees
+\cite{Weller2009}. Other methods use the overlap without the foundation's derivation: according
+to the classification of Elandt et al.~\cite{Elandt2019}, the models of Hasegawa and Fujii
+\cite{Hasegawa2003} and of Luo and Nahon \cite{Luo2006,Luo2011} take the direction of the patch
+from the vector area of the boundary of the overlap and a force that grows with its volume, and
+Wakisaka and Sugihara \cite{Wakisaka2017} combine a volumetric intersection with kinematic
+constraints; the same authors observe that all these methods ``rely on a single representative
+patch normal, so they do not extend well to non-convex contact''. That sentence applies to the
+two laws of this paper too. In computer graphics, layered depth images give the intersection
+volume and its gradient \cite{Faure2008,Allard2010}, and Bouchard et al.~\cite{Bouchard2015}
+build a constraint with rolling and spinning friction from the moments of the intersection
+volume.
+
+\paragraph{Hasegawa and Sato's contact volume model.} The closest prior art to the
+\law{distributed} law is the model of Hasegawa and Sato \cite{Hasegawa2004}. They decompose
+polyhedra into convex pieces, build the exact intersection of each pair of pieces
+\cite{Muller1978}, define one contact plane and normal per pair, and integrate in closed form,
+over each triangle of the intersection polyhedron, a distributed spring and damper whose depth
+is linear there. They distribute Coulomb friction in the same way but, in their words,
+``analytical integration of this equation is difficult'', so they interpolate the dynamic
+friction from the three vertices of each triangle; static friction is a distributed spring
+integrated into a translational and a rotational spring. The \law{distributed} law of this
+paper has the same architecture. It differs in the normalization, which is the Winkler one
+(N/m$^3$, so that the force of a flat contact is $K V$, as in Gonthier's model and in
+hydroelastic contact; theirs is divided by the contact area), in the direction of the traction
+(along each face's own normal), in the stiction (stiffness proportional to the load and one
+limit surface for force and torque), and in the friction integral, which is done in closed
+form. Elandt's thesis \cite{ElandtThesis2022} describes this design as conceptually
+straightforward and names friction as its difficulty, citing Hasegawa and Sato.
+
+\paragraph{Pressure-field (hydroelastic) contact.} Elandt, Drumwright, Sherman and Ruina
+\cite{Elandt2019} generalize the elastic foundation: a pressure field is defined in advance
+inside each body, the contact surface is where the two fields are equal, and the wrench is the
+integral over it of the pressure, a rate term of Hunt--Crossley type and Coulomb shear. The
+contact surface is curved and lies inside both bodies, so the model needs no representative
+normal and extends to non-convex contact. Masterjohn et al.~\cite{Masterjohn2022} adapt it to
+discrete-time solvers by turning each polygon of the contact surface into one compliant point
+contact at its centroid, which Drake solves with its transition-aware and convex formulations
+\cite{Castro2020,Castro2023,Castro2025}. Drake's documentation presents it as a modern
+rendition of the elastic foundation and gives, for small penetrations, the normal force
+$\kappa V$ with $\kappa = E/H$, the hydroelastic modulus over the depth of the pressure field,
+citing Gonthier \cite{DrakeHydroParams}. With $E = K H$ the model is therefore the same
+foundation as ours near the surface. It needs a volume mesh or an analytic field for every
+compliant body and has no contact surface between two rigid geometries; in its discrete form
+the friction torque within one polygon is not represented and converges with the refinement of
+the contact surface \cite{DrakeHydroGuide}.
+
+\paragraph{Point contact.} The continuous point-contact models descend from Hertz
+\cite{Hertz1882} with a dissipative term \cite{HuntCrossley1975,Lankarani1990,Flores2011};
+Flores et al.~\cite{Flores2023} review contact--impact events with friction. Project Chrono
+\cite{Tasora2016} offers a penalty formulation (SMC), with a tangential model whose dependence
+on the displacement history has been studied \cite{Fleischmann2016}, and a complementarity
+formulation (NSC) in the line of time-stepping schemes for rigid bodies with Coulomb friction
+\cite{Stewart1996,Anitescu1997}, solved as a cone complementarity problem
+\cite{Anitescu2010,Mazhar2015}. MuJoCo \cite{Todorov2012,Todorov2014} formulates contact as a
+convex optimization with soft constraints, with torsional and rolling friction as coefficients
+of each contact \cite{MuJoCoDocs}, and Drake has a compliant point contact next to the
+hydroelastic one \cite{DrakePointContact}. Yamane and Nakamura \cite{Yamane2006} give a stable
+penalty model at the vertices of polygonal objects. In all of these a face-to-face contact is a
+small set of points, usually at the boundary of the face.
+
+\paragraph{Conformal contact in joints with clearance.} The multibody literature on revolute
+joints with clearance treats the geometry of the \scn{journal} and \scn{bearing} scenarios of
+this paper, a pin in a hole of nearly its own radius, with finite-element and analytic
+references for the cylindrical contact force \cite{Liu2007,Pereira2011,Pereira2015}. These are
+force laws for one geometry, with references that this paper lacks
+(Section~\ref{sec:limitations}).
+
+\paragraph{Friction of a patch.} The coupling between the sliding and the spinning friction of
+a patch was described by Contensou \cite{Contensou1963}, developed analytically by Zhuravlev
+\cite{Zhuravlev1998} and Kireenkov \cite{Kireenkov2008}, and cast as a set-valued force law by
+Leine and Glocker \cite{Leine2003}. In manipulation the same physics is the limit surface of a
+planar sliding contact \cite{Goyal1991,Mason1986}, with ellipsoidal \cite{Howe1996},
+soft-finger \cite{Xydas1999,Ciocarlie2007} and convex polynomial \cite{Zhou2018}
+approximations. Jia and Erdmann \cite{Jia1997,Jia1999} give the friction force and moment on a
+sliding polygon under uniform pressure in closed form, edge by edge, about the instantaneous
+centre of rotation; the integrals are of the family of the potential integrals for uniform and
+linear source densities on polygons of boundary-element methods \cite{Wilton1984}. The closed
+form of Section~\ref{sec:friction} extends the result of Jia to a linear pressure on a triangle
+and uses it as the friction quadrature of a compliant contact law. We did not find that
+combination in the contact-simulation literature; the search did not cover the Russian-language
+tribology literature thoroughly. Kudra and Awrejcewicz \cite{Kudra2011,Kudra2015} approximate
+the integral friction of a patch coupled with rolling resistance and validate it
+experimentally, and Marques et al.~\cite{Marques2016,Marques2019} survey friction models for
+multibody dynamics, including rolling friction. Regularized friction holds a contact at rest
+with a spring that stands for the pre-sliding deflection: the Dahl model \cite{Dahl1976}, LuGre
+\cite{CanudasDeWit1995,Olsson1998} and the elasto-plastic model \cite{Dupont2002}; in the tyre
+form of LuGre \cite{CanudasDeWit1999} and in Gonthier's bristle \cite{Gonthier2007thesis} the
+stiffness is proportional to the load, and the 2018 thesis used the constant-stiffness bristle
+of Dopico et al.~\cite{Dopico2011}. The load-proportional stiction of
+Section~\ref{sec:stiction} is therefore standard practice and not a contribution of this paper.
+
+\paragraph{Benchmarks and comparisons of simulators.} Gonz\'alez et
+al.~\cite{Gonzalez2006,Gonzalez2010} proposed a benchmarking system for multibody simulation
+with standardized problems and reference solutions, continued by the library of the IFToMM
+technical committee \cite{IFToMMBenchmark} and by recent problems \cite{Ruggiu2023}; these
+target mechanisms and formulations, and we did not find conforming frictional contact among
+them (the catalogue was not audited problem by problem). Penalty and constraint formulations
+have been evaluated against each other \cite{Drumwright2011}, and solvers for the discrete
+frictional contact problem compared on a large collection \cite{Acary2018}. In robotics,
+engines are compared by their consistency under time-step refinement and by speed--accuracy
+curves \cite{Erez2015}, on analytic trajectories and conservation laws \cite{SimBenchmark}, by
+predictability \cite{Chung2016}, against measured impacts \cite{Fazeli2017,Acosta2022} or
+synthetic data \cite{Guo2023}, by classes of models \cite{Horak2019} and against criteria
+derived from the physical laws of contact \cite{LeLidec2024}; Erleben \cite{Erleben2018} gives
+a methodology for assessing how contact points are generated from meshes, and Collins et
+al.~\cite{Collins2021} review simulators more broadly. Hydroelastic contact was validated by
+its authors against Hertz theory and with convergence studies
+\cite{Elandt2019,Masterjohn2022}. Two practices of this literature shape
+Section~\ref{sec:benchmark}: the reference must not embed the model under test, and accuracy
+must be reported against cost and under refinement, not at a single step size.

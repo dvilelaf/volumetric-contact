@@ -1,0 +1,98 @@
+\section{Discussion}\label{sec:discussion}
+
+% Every statement about results refers to Section 5 and uses its generated numbers. Statements
+% about native models are limited to properties of the model family; what the runs of our
+% configurations show beyond that is in Section S3.
+
+\paragraph{What a patch model is for.} The answer of a scenario depends on the model of the
+patch exactly where it depends on how the pressure is distributed: the friction torque of a
+spinning face, the tilt of an eccentric load, the angle at which a body tips over a soft
+support, the force that holds a press fit. A point contact represents a face by a few points
+with a stiffness in N/m; it gives a disk the friction torque of a ring unless the user supplies
+a torsional coefficient per geometry, and it has no areal stiffness against which class C could
+be asked. Complementarity contact has no compliance at all, so the same questions do not apply
+to it, and it is the natural choice where rigidity is the right model: a body sliding or
+rolling on one plane, a body held by friction, stiff contacts on light bodies. On those
+problems a patch model adds nothing, and the two laws pay for their foundation with the rolling
+resistance of its damping, with its compliance and with the step bound of their explicit
+coupling. Table~\ref{tab:decision} sets the situations against the model property that each one
+needs.
+
+\begin{table}[t]
+\caption{Which property of a contact model each situation needs, as far as classes A and B of
+the battery show}
+\label{tab:decision}
+\footnotesize
+\begin{tabular}{@{}p{0.30\linewidth}p{0.33\linewidth}p{0.31\linewidth}@{}}
+\toprule
+Situation & What it needs & Evidence \\
+\midrule
+A rigid body sliding or rolling on one plane; sphere and cylinder contacts &
+  Nothing beyond point or complementarity contact &
+  Both laws within 1\,\% in \result{within/oneplane/distributed+gonthier/1} such scenarios
+  (Table~\ref{tab:errors-A}); no gain from the patch \\
+A flat face that spins, or slides and spins &
+  A pressure distributed over the face: \law{distributed} or a pressure field; \law{gonthier}
+  where its lumping error is acceptable &
+  \scn{disk}: \result{err/disk/distributed}; \law{gonthier} \result{err/disk/gonthier};
+  the rim torque of point contact (Section~\ref{sec:classB}) \\
+Curved conforming contact (a journal, a conical seat) &
+  Local normals: a per-face foundation or a pressure field. A finer mesh is not a remedy for
+  \law{distributed} &
+  \scn{journal}: \law{distributed} \result{err/journal/distributed/mesh32},
+  \result{err/journal/distributed}, \result{err/journal/distributed/mesh128} at 32, 64 and 128
+  segments; \law{pcm} \result{err/journal/pcm/mesh128} at 128 \\
+Bodies or grounds cut into convex pieces &
+  A wrench independent of the cut: \law{distributed} &
+  \scn{pieces64}: \result{err/pieces64/distributed}; \law{gonthier}
+  \result{err/pieces64/gonthier}, \law{pcm} \result{err/pieces64/pcm} \\
+A body held by friction near its limit &
+  A stick state, or a complementarity formulation &
+  \scn{push}, \scn{wedge}: the laws below 1\,\%; \law{pcm} \result{err/push/pcm} and
+  \result{err/wedge/pcm} \\
+Stiff contacts on light bodies, large mass ratios &
+  A formulation implicit in the contact force; not the explicit laws beyond
+  Eq.~\eqref{eq:stability} &
+  \scn{massratio}: the laws lost at 0.5\,ms and above, held from 0.2\,ms \\
+Long rolling &
+  No damping torque in the patch: rigid contact, or the laws with little damping or a stiff
+  foundation &
+  \scn{turntable}: \result{err/turntable/distributed};
+  \result{err/turntable/distributed/stiff} with $K\times10$ \\
+Only surface meshes are available &
+  \law{gonthier} (any closed mesh) or \law{distributed} (convex pieces) &
+  No volume mesh or pressure field is needed \\
+\botrule
+\end{tabular}
+\end{table}
+
+\paragraph{Lumped, distributed and per-face foundations.} The three are the same normal law.
+\law{gonthier} lumps it, which is exact for a flat patch in the normal wrench and costs
+\result{err/disk/gonthier} to \result{err/contensou/gonthier} where a face spins. \law{distributed} integrates it, which removes
+that error and makes the result independent of the triangulation and of the cut, at a higher cost (medians of
+\result{cost/gonthier/median} and \result{cost/distributed/median} of real time). \law{pcm} samples it once per element: what separates it from
+\law{distributed} is the friction on coarse flat faces, which a finer mesh would repair, and
+the lack of a stick state, which it would not. On curved conforming contact \law{pcm} is the
+better of the two, because its depth follows the local normal: exact integration on each face
+with a depth measured locally is the pressure field of hydroelastic contact reached from the
+other side.
+
+\paragraph{Against pressure-field contact.} With $E = K H$, hydroelastic contact is the same
+pressure model as \law{distributed} near the surface, and the comparison is one of
+discretizations. \law{distributed} takes surface meshes, needs convex pieces, clips the overlap
+exactly and integrates pressure and friction on it in closed form, so that one triangle per
+flat face is enough; its contact has one normal per pair of pieces and its coupling is
+explicit. Hydroelastic contact needs a pressure field in every compliant body and has no
+contact between two rigid geometries; its contact surface is curved, with no representative
+normal, so it converges on curved conforming contact where \law{distributed} does not, and its
+solver is implicit, so it has no step bound of the kind of Eq.~\eqref{eq:stability}; it pays
+for the contact surface between tetrahedral fields and for one constraint per polygon. A user
+who needs non-convex geometry, stiff contact or large steps is better served by it; a user who
+has surface meshes, moderate stiffness and flat patches that spin, on convex or decomposed
+bodies, obtains the same pressure model from \law{distributed}.
+
+\paragraph{What the closed-form friction gives.} Independence of the triangulation and of the
+decomposition, exactly and at no cost in mesh (Section~\ref{sec:ablation}). It removes a
+requirement on the mesh and is not a gain in accuracy over a well-used quadrature. It is the
+only element of \law{distributed} that we claim as new, and it is a direct extension of the
+uniform-pressure result of Jia \cite{Jia1997} with the same primitives.

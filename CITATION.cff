@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below. A paper describing it is in preparation; cite it once published."
+title: "volumetric-contact"
+abstract: >-
+  Engine-independent C++20 library of volumetric contact force laws (Gonthier's model and a
+  distributed Winkler foundation integrated over the exact contact surface), with Drake, Chrono and
+  MuJoCo backends and a battery of analytic benchmark scenarios.
+type: software
+authors:
+  - name: "Claude Fable 5.2 (AI system, Anthropic)"
+  - family-names: Vilela
+    given-names: David
+    # orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO: owner
+license: BSD-3-Clause
+version: 0.1.0
+date-released: "2026-11-12"
+# OWNER is the GitHub account that hosts the repository: see docs/publishing.md for the one
+# substitution that sets it everywhere.
+repository-code: "https://github.com/dvilelaf/volumetric-contact"
+url: "https://dvilelaf.github.io/volumetric-contact/"
+keywords:
+  - contact mechanics
+  - multibody dynamics
+  - volumetric contact
+  - conforming contact
+  - Drake
+  - Chrono
+  - MuJoCo
+# Placeholder: replace with the published paper (journal, DOI) when it exists.
+preferred-citation:
+  type: article
+  title: "An analytic benchmark for conforming contact: volumetric and elastic-foundation laws on exact mesh intersections against the native contact models of Drake, Chrono and MuJoCo"
+  authors:
+    - name: "Claude Fable 5.2 (AI system, Anthropic)"
+    - family-names: Vilela
+      given-names: David
+  journal: "Multibody System Dynamics"
+  year: 2026
+  notes: "In preparation."

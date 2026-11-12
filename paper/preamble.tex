@@ -1,0 +1,73 @@
+% Packages, notation and the macros that bring generated results into the text.
+
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage[title]{appendix}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{manyfoot}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,patterns,decorations.pathreplacing,fit}
+
+\raggedbottom
+% Floats: let a page take large tables and figures instead of deferring them to the end.
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+
+% --- Notation (Table 1 lists the symbols) --------------------------------------
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\tens}[1]{\mathbf{#1}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\unit}[1]{\,\mathrm{#1}}
+\newcommand{\n}{\vect{n}}                 % pair normal
+\newcommand{\m}{\vect{m}}                 % unit normal of a face
+\newcommand{\x}{\vect{x}}
+\newcommand{\vv}{\vect{v}}
+\newcommand{\w}{\vect{\omega}}
+\newcommand{\rr}{\vect{r}}
+\newcommand{\q}{\vect{q}}
+\newcommand{\region}{\mathcal{V}}         % the overlap as a set; V is its volume
+\newcommand{\dt}{\Delta t}
+\newcommand{\Fn}{F_n}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\scn}[1]{\textsf{#1}}         % a scenario of the battery
+\newcommand{\law}[1]{\textsf{#1}}         % a contact method: gonthier, distributed, native models
+
+% --- To-do markers --------------------------------------------------------------
+% \todo{...} marks what is missing; the build log reports how many are left.
+\newcounter{todos}
+\DeclareRobustCommand{\todo}[1]{\stepcounter{todos}\textcolor{red}{\textbf{[TODO: #1]}}}
+\AtEndDocument{\typeout{TODO markers: \arabic{todos}}}
+
+% --- Generated results (paper/README.md describes the files) ---------------------
+% No number that comes from a run is typed by hand. The results script writes
+%   generated/numbers.tex          \setresult{key}{value} lines
+%   generated/tables/<name>.tex    complete tabular environments
+%   generated/figures/<name>.pdf   figures
+% and the text uses the three macros below. While a file or a key does not exist the
+% macro prints a red marker with its name, so the paper always builds.
+\makeatletter
+\newcommand{\setresult}[2]{\expandafter\gdef\csname vc@result@\detokenize{#1}\endcsname{#2}}
+\DeclareRobustCommand{\result}[1]{%
+  \ifcsname vc@result@\detokenize{#1}\endcsname
+    \csname vc@result@\detokenize{#1}\endcsname
+  \else
+    \todo{\texttt{\detokenize{#1}}}%
+  \fi}
+\newcommand{\generatedtable}[1]{%
+  \IfFileExists{generated/tables/#1.tex}{\input{generated/tables/#1.tex}}%
+    {\todo{table \texttt{\detokenize{generated/tables/#1.tex}}}}}
+\newcommand{\generatedfigure}[2][width=\linewidth]{%
+  \IfFileExists{generated/figures/#2.pdf}{\includegraphics[#1]{generated/figures/#2.pdf}}%
+    {\fbox{\parbox[c][3cm][c]{0.9\linewidth}{\centering
+      \todo{figure \texttt{\detokenize{generated/figures/#2.pdf}}}}}}}
+\makeatother
+\InputIfFileExists{generated/numbers.tex}{}{}

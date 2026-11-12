@@ -1,0 +1,99 @@
+\section{Limitations and threats to validity}\label{sec:limitations}
+
+% The one place where the caveats of the paper are stated. Other sections refer here.
+
+% The finite-element reference (Section 5.4, sections/fem-reference.tex) covers disk and bearing
+% only; widen this paragraph if another external reference is added.
+\paragraph{One finite-element reference, no experimental one.} Every reference of the battery
+is analytic. Class A references are exact for rigid bodies; class B references assume a
+pressure distribution; class C references are the foundation's own. For two class B scenarios,
+\scn{disk} and \scn{bearing}, Section~\ref{sec:fem} places a linear-elastic continuum in the
+band. It settles where a continuum support falls there (on the Winkler cosine for the thin
+sleeve, at the rigid-punch end for the battery's thick slab) and that on the thick slab the
+methods that integrate the foundation correctly are off by the distance between a Winkler
+foundation and a continuum, which no discretization removes. It does not settle more. It is a
+static, small-strain solution of the frictionless normal problem, exact for the spinning punch
+and the $\mu\to0$ limit for the sleeve, and it assumes sliding everywhere, while the runs are
+dynamic, damped and pass through stick; the support's Poisson ratio is not given by the
+battery, and $E$ follows from $K$ through the thin-layer mapping. It covers two scenarios:
+\scn{ring}, \scn{contensou} and \scn{cone} were not computed, and no class A or C scenario,
+impact, rolling resistance or flutter has a continuum reference. Apart from the thin layers of
+Section~\ref{sec:fem}, where a continuum behaves as one, nothing in this paper shows that a
+Winkler foundation of stiffness $K$ describes a physical contact, and no measurement was used. Conformal cylindrical contact has finite-element and analytic references in the
+literature on clearance joints \cite{Liu2007,Pereira2011,Pereira2015}, and patch friction has
+experimental ones \cite{Kudra2015}; we cite those works for what their titles and abstracts
+state and used none of their reference solutions.
+
+\paragraph{A regime chosen for the laws.} The stiffness of every scenario was chosen so that
+the explicit coupling is stable at the base step of 1\,ms, with two exceptions written to show
+the limit (\scn{tower}, \scn{massratio}). The foundations are therefore soft, $10^6$ to
+$10^8$\,N/m$^3$, orders of magnitude below engineering materials over a layer of millimetres,
+where the laws would need a step proportional to $K^{-1/2}$ and solvers implicit in the contact
+would not; one decade of stiffness was explored, at one step, and the rigid limit of class A
+was not tested. The damping factor $h = 5$\,s/m has no physical justification and was not tied
+to a coefficient of restitution; with $K$ it sets the errors of \scn{bowl}, \scn{trough},
+\scn{turntable} and \scn{edge}. The stiction constants $d$ and $\tau$ were not swept. The
+battery did not record in which runs the step bounds of Section~\ref{sec:coupling} were active;
+from the loads, they are in \scn{tower}, \scn{massratio} and \scn{stack} at the base step and
+not where one body rests under its own weight. Where they act, what is benchmarked is the law
+regularized by the step, and a flat step series is evidence about the law as given only where
+they do not.
+
+\paragraph{Few, hand-picked scenarios that the laws have seen.} The
+\result{battery/scenarios} scenarios are not a sample of the problems that a user will meet;
+several test the same mechanism, and class B has \result{battery/n/B}. The laws were developed
+on \result{battery/dev} of them and changed in response; the other \result{battery/heldout},
+the second set, were written before any law was run on them, but three changes to the laws were
+adopted after their first run (Section~S4.3), so no part of the battery is an out-of-sample
+test of the two laws. Every change was general (no scenario has a constant of its own). The
+ratios, intervals and $p$-values of Section~\ref{sec:ratios} are therefore descriptive: the
+bootstrap treats as exchangeable units that are not, and the family of primary comparisons and
+the rules for capped and failed runs were fixed after the data had been seen (Section~S5). The
+battery records the class B errors without sign (Table~\ref{tab:fem} signs those of \scn{disk}
+and \scn{bearing} from their stop times). The findings that we expect to survive another
+battery are those tied to a mechanism, not the counts.
+
+\paragraph{The native configurations and the baselines are ours.} No configuration of a native
+model was reviewed by the developers of its engine; they were built from the documentation,
+revised after first results on the development scenarios, and contain asymmetries (Section~S3).
+The main text therefore claims of the native models only what follows from their model family.
+Their other results, several of them unexplained and several scattered over nearby starts, are
+in Section~S3 as results of our configurations and should not be read as the performance of
+those engines in expert hands. The vertex rule follows our reading of Hasegawa and Sato
+\cite{Hasegawa2004}; the paper was not accessible to us again, so the rule was not re-checked
+against its equations. \law{pcm} departs from its publications (Section~S1.13), and the
+published models on their own meshes were not run. The statements of
+Section~\ref{sec:related} about the models of Hasegawa and Fujii, Luo and Nahon, and Wakisaka
+and Sugihara rest on the classification of Elandt et al.~\cite{Elandt2019}, not on the primary
+sources.
+
+\paragraph{Limits of validity of the laws.} (i) \emph{Explicit coupling}: the normal stiffness
+is bounded by Eq.~\eqref{eq:stability}, and above a load threshold the step bounds apply a
+softer stick, a wider stick--slip transition and less damping than the parameters say; the
+remedy is an implicit coupling with the Jacobians of the wrench. (ii) \emph{Friction-induced
+flutter}: beyond Eq.~\eqref{eq:flutter} a sliding face under a body with a raised centre of
+mass is unstable in rocking; the ratio of the two sides grows as $\mu\,z_c\sqrt{K}/h$, the
+class B scenarios are below the limit at their $K$ and above it at $10K$, and a damping stated
+as a time constant, which would reverse that dependence, would change the published law and
+every result and was not tried. (iii) \emph{One normal per pair of convex pieces}
+\cite{Elandt2019}: non-convex bodies must be decomposed exactly, curved conforming contacts are
+represented facet by facet, and \scn{journal} does not converge. (iv) \emph{Energy}: Gonthier's
+normal force is not conservative on faceted or decomposed geometry, and the elastic force of
+\law{distributed} is not where the pair normal turns with the overlap. (v) \emph{What ``exact''
+covers}: the geometry and the normal wrench, for the polyhedra given and not for the curved
+bodies that they approximate; the friction is exact for a linear pressure on each flat triangle
+and approximate elsewhere, and the stiction is a lumped regularization with two constants that
+are not material properties (Sections~S1.8, S1.9 and~S1.11).
+
+\paragraph{Unexplained observations.} \law{pcm}, whose normal law, damping and friction lever
+are nominally those of the two laws, did not flutter on the disk up to $100K$. The value of the
+energy measure of \law{gonthier} at the base step differs from that of a single run made when
+the scenario was written, and the change that moved it was not identified. How much of the
+growth of the errors of \scn{cone} and \scn{bearing} at $10K$ is flutter and how much the sag
+of the facets was not separated. Section~S5.5 lists the runs that would settle these and the
+other open points.
+
+\paragraph{Timings.} The costs are those of one processor, one thread configuration and one
+step size; the two friction quadratures were not timed, Chrono SMC is sub-stepped by its
+backend, and the native models were run at the step of the battery, not at the larger steps
+that implicit solvers allow.

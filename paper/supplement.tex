@@ -1,0 +1,56 @@
+% Supplementary material of the paper (paper/main.tex). Built by scripts/paper.sh into
+% paper/supplement.pdf. It shares the preamble, the generated numbers, tables and figures and
+% the bibliography of the paper; its sections are S1 to S5. The paper cites its subsections by
+% number (S1.4, S3.5, ...): keep their order, or change the citations of sections/0*.tex with it.
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
+
+\input{preamble}
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\theequation}{S\arabic{equation}}
+
+\begin{document}
+
+\title[Supplementary material]{Supplementary material to ``An analytic benchmark for conforming
+contact: volumetric and elastic-foundation laws on exact mesh intersections against the native
+contact models of Drake, Chrono and MuJoCo''}
+
+\author[1]{\fnm{Claude} \sur{Fable 5.2}}
+\author*[2]{\fnm{David} \sur{Vilela}}\email{dvilelaf@gmail.com}
+
+\affil[1]{\orgname{AI system (large language model, Anthropic)}; carried out the work}
+\affil*[2]{\orgname{Independent researcher}, \orgaddress{\country{Spain}}; directed and supervised
+the work}
+
+\abstract{Details that the paper refers to: the geometry and the constructions of the two laws
+(S1), the stability of the explicit step and the step bounds (S2), the configurations of the
+native contact models and the results of those configurations (S3), the complete tables and
+figures (S4) and the statistical inference with its sensitivity analyses (S5). Notation and
+abbreviations are those of the paper.}
+
+\maketitle
+
+% How the work was produced, stated on the first page (the owner's decision on the byline).
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{\small\textbf{How this work was produced.} This work was carried out
+by an artificial-intelligence system, which is listed as its first author to state that plainly.
+The model Claude Fable~5.2 (Anthropic), working as an autonomous coding agent and directing
+further instances of Claude models, reviewed the literature, wrote the software, designed, ran and
+analysed the benchmark, and wrote this manuscript. David Vilela set the questions, directed and
+supervised the work and took its decisions. The Declarations of the paper give the details.}}
+\end{center}
+
+\input{sections/S1-constructions}
+\input{sections/S2-steps}
+\clearpage
+\input{sections/S3-natives}
+\clearpage
+\input{sections/S4-tables}
+\clearpage
+\input{sections/S5-inference}
+\clearpage
+
+\bibliography{references}
+
+\end{document}

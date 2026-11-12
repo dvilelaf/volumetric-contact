@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# One entry point for every quality check of this repository.
+#   scripts/verify changed            what this branch changed (agents, while working)
+#   scripts/verify changed --staged   what is staged (the pre-commit hook)
+#   scripts/verify full               everything, plus a bench smoke run (integration)
+# Every check runs, then the failures are listed together on the last line.
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" || exit 2
+
+mode=${1:-changed}
+staged=0; [ "${2:-}" = --staged ] && staged=1
+lock=/tmp/volcontact-verify.lock # one Docker build at a time on this machine
+failed=()
+
+run() { # run <label> <command...>: run it, remember a failure, go on
+  local label=$1; shift
+  echo "== $label"
+  "$@" && return 0
+  failed+=("$label"); return 1
+}
+
+default_branch() {
+  git symbolic-ref -q --short refs/remotes/origin/HEAD && return
+  local b
+  for b in main master; do
+    git rev-parse -q --verify "$b" >/dev/null && { echo "$b"; return; }
+  done
+}
+
+# --- What to check -------------------------------------------------------------
+# A branch's changes are measured from the merge base with its upstream (the
+# integration branch), else with the default branch.
+if [ "$mode" = full ]; then
+  files=$(git ls-files)
+elif [ "$staged" = 1 ]; then
+  files=$(git diff --cached --name-only --diff-filter=ACMR)
+else
+  target=$(git rev-parse -q --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null) || target=$(default_branch)
+  base=$(git merge-base HEAD "${target:-HEAD}" 2>/dev/null) || base=$(git rev-parse HEAD)
+  files=$({ git diff --name-only --diff-filter=ACMR "$base"; git ls-files --others --exclude-standard; } | sort -u)
+fi
+
+# --- Secrets (gitleaks) ----------------------------------------------------------
+if [ "$mode" = full ]; then
+  run secrets gitleaks git --no-banner --redact
+elif [ "$staged" = 1 ]; then
+  run secrets gitleaks git --pre-commit --staged --no-banner --redact
+else
+  [ "$base" != "$(git rev-parse HEAD)" ] && run secrets-committed gitleaks git --log-opts="$base..HEAD" --no-banner --redact
+  run secrets-uncommitted sh -c 'git diff HEAD | gitleaks stdin --no-banner --redact'
+fi
+
+# --- Python (tools/) -------------------------------------------------------------
+pyfiles=$(grep -E '\.py$' <<<"$files" | tr '\n' ' ')
+[ -n "$pyfiles" ] && run py-lint uvx ruff check $pyfiles
+[ -d tools/tests ] && run py-tests uv run --quiet --with pytest --with numpy --with scipy --with scikit-fem --with matplotlib --with trimesh pytest -q tools/tests
+
+# --- Generated meshes (gitignored volume meshes the scenarios and tests read; fast when none is missing) --
+run meshgen uv run tools/meshgen.py --missing-volumes
+
+# --- C++ (Docker, one at a time) -----------------------------------------------
+log=/tmp/volcontact-build.log
+cpp_build() {
+  [ -f build/CMakeCache.txt ] || scripts/dev.sh cmake -S . -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release -DVOLCONTACT_NATIVE=ON -DVOLCONTACT_WITH_CHRONO=ON -DVOLCONTACT_WITH_MUJOCO=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache || return 1
+  scripts/dev.sh cmake --build build 2>&1 | tee "$log"
+}
+no_warnings() { # warnings of this run's compiles; a no-op build compiles nothing
+  ! grep 'warning:' "$log" || return 1
+}
+# The smoke run builds every scenario on every engine and contact model and steps it for 0.05 s of
+# simulated time: it shows that each combination runs, not its error (whole runs take hours on the
+# slow native contacts).
+{
+  flock 9
+  if run build cpp_build; then
+    run warnings no_warnings
+    run tests scripts/dev.sh ./build/tests/volcontact_tests
+    run core-tests scripts/dev.sh ./build/tests/volcontact_core_tests
+    [ "$mode" = full ] && run install scripts/dev.sh scripts/check-install.sh
+    [ "$mode" = full ] && run smoke scripts/dev.sh ./build/apps/volcontact_bench --repeat 1 --max-duration 0.05 --out /tmp/vc-smoke
+  fi
+} 9>"$lock"
+
+if [ ${#failed[@]} -gt 0 ]; then
+  echo "verify $mode: FAILED: ${failed[*]}" >&2
+  exit 1
+fi
+echo "verify $mode: ok"

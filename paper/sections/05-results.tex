@@ -1,0 +1,370 @@
+\section{Results}\label{sec:results}
+
+% Every number, table and figure of this section comes from paper/generated/, which
+% tools/paper_results.py writes from results/battery.csv, results/terms.csv, results/stats.json,
+% results/ablation_triangulation.csv and paper/provenance.json (see paper/README.md). Predictions
+% and the numbers of single diagnostic runs are taken from docs/history.md and
+% docs/research/anomalies.md, are worded as such and are marked in comments.
+
+\subsection{The runs, and the same law on three engines}\label{sec:runs}\label{sec:independence}
+
+There are \result{battery/runs} runs: \result{battery/scenarios} scenarios,
+\result{battery/methods} combinations of engine and contact method and up to
+\result{battery/variants} variants per scenario. Of them, \result{battery/ok} finished with an
+error value and \result{battery/failed} did not; the two laws have \result{status/laws/notok}
+such run, and Section~S4.1 accounts for each. Errors are in percent of the reference, and the
+tables show the base variant.
+
+For \law{gonthier} and \law{distributed}, in the \result{ind/distributed/n} scenarios that
+hold, the errors on the three engines differ by at most \result{independence/worst} (in
+\result{ind/distributed/worst-scenario}), with a median relative difference of
+\result{ind/distributed/median} (Section~S4.2). The three backends pass the same states to the
+library and apply its wrenches at the same instant, on code bases that share nothing: this is a
+check of the implementation, and the reason why one engine is enough to show a law.
+
+\subsection{Class A: rigid-body references}\label{sec:classA}
+
+Table~\ref{tab:errors-A} gives the errors on the \result{battery/n/A} class A scenarios. Where a
+body slides or rolls on one plane (\scn{block}, \scn{cylinder}, \scn{sphere}, \scn{push},
+\scn{vgroove}, \scn{twoblocks}, \scn{billiard}) both laws are within 1\,\%, except for the time at which rolling starts in \scn{billiard}
+(\result{err/billiard/gonthier} and \result{err/billiard/distributed}), and they hold the
+bodies that must be held (\scn{push}, \scn{wedge}, \scn{tower}). A patch model adds nothing
+there: a rigid body on one plane is what point and complementarity contact are built for. The methods without a stick state creep long before
+the friction limit: \law{gonthier-thesis} and \law{pcm} have \result{err/push/thesis} and
+\result{err/push/pcm} in \scn{push}, and \result{err/wedge/thesis} and \result{err/wedge/pcm}
+in \scn{wedge}. The larger errors of the two laws have four causes, each of which can be
+predicted.
+
+\begin{table}[t]
+\caption{Class A: error [\%] of each method, base variant (abbreviations in
+Section~\ref{sec:variants}; methods of the library on Chrono). The columns of the native models
+are results of our configurations (Section~S3). \textit{nan}, \textit{timeout}: runs without an
+error value}
+\label{tab:errors-A}
+\generatedtable{errors_class_A}
+\end{table}
+
+\emph{Rolling resistance of the damped foundation} (\scn{bowl}, \scn{trough}, \scn{turntable}).
+In \scn{bowl} and \scn{trough} the period is right (for \law{distributed},
+\result{term/bowl/distributed/period} and \result{term/trough/distributed/period}); the error is
+the loss of amplitude, which the rigid theory keeps constant: \result{err/bowl/distributed} and
+\result{err/trough/distributed}. In \scn{turntable}, whose rigid orbit is a closed circle, the
+orbit rate is right (\result{term/turntable/distributed/orbit_rate}) and the orbit spirals
+outwards: its radius grows by \result{err/turntable/distributed}. These errors are the rolling
+resistance $\vect{M}_r = -K h\,\tens{J}\,\w_t$ of Eq.~\eqref{eq:gonthier-normal}. For the cap of
+a sphere of radius $R$ pressed to a depth $\delta$, $\tens{J}$ has the tangential moment
+$V R\delta/3$, so the torque is $-(h\,m g R\delta/3)\,\w_t$. In \scn{turntable} the no-slip
+equations with that torque give a radius that grows as $\exp(\tfrac{25}{42}\,h g\,\delta\,t/R)$,
+that is, by 77\,\% over the run for the static penetration of the scenario, against
+\result{err/turntable/distributed} measured; in \scn{bowl} the same torque predicts a loss of
+amplitude of 12\,\%, against \result{err/bowl/distributed} measured.
+% 77 % and 12 % (0.351 rad left of 0.4): predictions derived in docs/history.md (entries of 2026-11-11), not battery results.
+The errors are the model's answer at the $h$ and $K$ of the scenario, not numerical errors: any
+damped Winkler foundation has this torque, every Winkler-type method of
+Table~\ref{tab:errors-A} shows the loss, and with
+$K\times10$ the errors of \law{distributed} fall from \result{err/turntable/distributed/dt0.2}
+to \result{err/turntable/distributed/stiff} and from \result{err/bowl/distributed/dt0.2} to
+\result{err/bowl/distributed/stiff}.
+
+\emph{Compliance} (\scn{edge}). A rigid block leaves the table when its centre of mass passes
+the edge; on a compliant foundation it pitches earlier, and every Winkler-type method does
+(\result{err/edge/distributed} for the two laws, \result{err/edge/hydro} for Drake
+hydroelastic). With $K\times10$ the error of the laws falls to
+\result{err/edge/distributed/stiff}. These four scenarios measure $h$ and $K$ more than the
+contact law, and summaries of class A are also given without them (``reduced'' class A).
+
+\emph{The stability bound of the explicit coupling} (\scn{massratio}). The light block between
+the heavy one and the ground is held by two contacts, so Eq.~\eqref{eq:stability} requires
+$\dt < \sqrt{m/(K A_c)}$, which is 0.25\,ms for the scenario.
+% K A_c = 1.6e7 N/m, m = 1 kg: design parameters of the scenario (docs/scenarios.md)
+The two laws are lost at 2, 1 and 0.5\,ms and hold from 0.2\,ms, with
+\result{err/massratio/distributed/dt0.2} of error at 0.2\,ms and
+\result{err/massratio/distributed/dt0.1} at 0.1\,ms, a residual speed that the bounded dampers
+remove slowly. A formulation that is implicit in the contact force has no such bound, and
+complementarity contact holds the scenario at the base step. The tower of ten blocks is inside the
+bound and both laws hold it at the base step (\result{err/tower/distributed}).
+
+\emph{One normal per pair of convex pieces} (\scn{journal}). The error of \law{distributed}
+(\result{err/journal/distributed}) is in the angle at which the shaft rides up the hole, and it
+does not fall with the mesh (Section~\ref{sec:convergence}).
+
+Two more results concern the laws. On a ground cut into 1, 2, 8 and 64 pieces
+\law{distributed} gives the same error (\result{err/pieces64/distributed}); \law{gonthier} is
+unaffected up to 8 pieces and turns the spinning box differently on 64
+(\result{err/pieces64/gonthier}), and \law{pcm} depends on the cut
+(\result{err/pieces64/pcm}). In \scn{oblique} the laws miss the rigid impulse theory by
+\result{err/oblique/gonthier} and \result{err/oblique/distributed}.
+
+\emph{Energy} (\scn{energy}). The error is the change of kinetic plus gravitational energy of a
+frictionless, undamped ball between the first and the last period. The measure omits the energy
+held by the undamped bounce on the contact spring, and sinking to the static penetration alone
+moves 2.9\,\% of the energy of the swing, % 2.9 %: m g delta over the swing's energy, docs/research/anomalies.md §2
+so it varies irregularly with the step and with the start for every law: over the five steps of
+the series between \result{err/energy/gonthier/dt0.2} and \result{err/energy/gonthier/dt2} for
+\law{gonthier}, between \result{err/energy/pcm} and \result{err/energy/pcm/dt0.2} for \law{pcm}
+and between \result{err/energy/distributed/dt0.5} and \result{err/energy/distributed/dt0.1} for
+\law{distributed}. The \result{err/energy/gonthier} of \law{gonthier} in
+Table~\ref{tab:errors-A} is one value of that measure and not a steady gain. There is also a
+true, smaller effect: Gonthier's normal force $K V\n$ is the gradient of a potential only where
+the contact area is a function of the volume alone; with $\nabla V = A_c\n$ its curl is
+$-K\,(V/A_c^2)\,\nabla A_c\times\nabla V$, which does not vanish on faceted or decomposed
+surfaces. Its size was not separated from the noise of the measure (Section~S4.7).
+
+\subsection{Class B: references that assume a pressure distribution}\label{sec:classB}
+
+Table~\ref{tab:errors-B} gives the errors against the nominal reference and marks the position
+of each run against the band of admissible distributions, which is the part of the reference
+that does not depend on the Winkler model.
+
+\begin{table}[t]
+\caption{Class B: error [\%] against the nominal reference, base variant. Band: admissible
+pressure distributions, in percent of the nominal stop time. $^\dagger$: the error exceeds the
+wider side of the band, so the run is outside it; $^{*}$: it exceeds the narrower side only, so
+its position is undetermined (the sign of the error was not recorded); unmarked errors are
+inside. The columns of the native models are results of our configurations (Section~S3)}
+\label{tab:errors-B}
+\generatedtable{errors_B}
+\end{table}
+
+No elastic-foundation method is outside the band in any scenario: \law{distributed},
+\law{gonthier}, \law{pcm} and Drake hydroelastic have no run marked as outside
+(\law{gonthier-thesis} is the exception among the methods of the library). \law{distributed}
+and Drake hydroelastic, the two methods that integrate the foundation over the contact surface,
+are known to be inside the band in \result{band/distributed/inside} and
+\result{band/hydro/inside} of the five scenarios and are undetermined in the others;
+\law{gonthier} and \law{pcm} are inside in fewer. The two also meet the nominal value, within
+\result{err/bearing/distributed} and \result{err/cone/hydro}. That agreement is a consistency
+result: the nominal value is the model's own distribution, so two independent implementations
+of the same pressure model, on different engines and with different discretizations, integrate
+it correctly, and nothing follows about whether that pressure is the true one. How far it is
+from the pressure of a continuum support is measured, for two of the scenarios, in
+Section~\ref{sec:fem}.
+
+\law{gonthier} misses the nominal value by the amount that its lumping predicts:
+\result{err/disk/gonthier} in \scn{disk}, where the torque through the radius of gyration is
+6\,\% above the exact integral (Section~\ref{sec:gonthier}), and
+\result{err/contensou/gonthier} in \scn{contensou}. \law{pcm} has the error of its one-point
+friction on the battery's meshes (\result{err/disk/pcm}; Section~\ref{sec:ablation}) and the
+smallest error of all methods in \scn{bearing} (\result{err/bearing/pcm}), where its depth
+follows the local surface.
+
+A point-contact model does not represent the distribution. A face held by points of its
+rim has the friction torque of a ring, $\mu N R$ against $\tfrac23\mu N R$ for the disk, unless
+the user supplies a torsional friction coefficient for each geometry; the same holds for
+complementarity contact on the same contact points. In the table, each of these models is
+outside the band in \result{band/smc/outside} to \result{band/dpoint/outside} of the five
+scenarios, and several of their runs scatter over nearby starts or end without a stop time
+(Section~S3.4).
+
+\input{sections/fem-reference}
+
+\subsection{Class C: consistency with the Winkler foundation}\label{sec:classC}
+
+Class C asks whether a method is a Winkler foundation of stiffness $K$
+(Table~\ref{tab:errors-C}); it does not apply to complementarity contact, which has no
+compliance, or to a point contact whose stiffness is not areal. \law{distributed} is within
+5\,\% in \result{pass/C/distributed/5} scenarios and \law{gonthier} in
+\result{pass/C/gonthier/5}; the largest errors are the depth reached in the press fit
+(\scn{hole}: \result{err/hole/gonthier} and \result{err/hole/distributed}). For the two laws
+these scenarios are regression tests against the law's own closed-form predictions: the tilt
+under an eccentric load, the tipping angle on a soft support and the depth of a press fit all
+follow from the pressure over the patch. \law{pcm} and \law{gonthier-thesis} fail the scenarios
+in which a body must be held by friction (\scn{tip}, \scn{hole}, \scn{stack}). Drake
+hydroelastic, the same pressure model, is within 5\,\% in \result{pass/C/hydro/5}; its errors
+in the impact scenarios fall with the step (\scn{drop}: \result{err/drop/hydro} at 1\,ms,
+\result{err/drop/hydro/dt0.1} at 0.1\,ms), and three others do not and are unexplained
+(Section~S3.5).
+
+\begin{table}[t]
+\caption{Class C: error [\%] of the methods that are a Winkler foundation, base variant}
+\label{tab:errors-C}
+\generatedtable{errors_class_C}
+\end{table}
+
+\subsection{The friction quadrature and the triangulation}\label{sec:ablation}
+
+On the meshes of the battery the closed-form friction and the two quadratures of the
+literature differ widely on the flat contacts that spin: in \scn{disk},
+\result{err/disk/distributed} with the closed form against \result{err/disk/vertex} with the
+vertex rule and \result{err/disk/centroid} with one point per triangle, at 128 segments per
+turn as at 64 (\result{err/disk/vertex/mesh128} and \result{err/disk/centroid/mesh128}); and
+with the ground cut into 64 pieces the error of \scn{pieces} goes from
+\result{err/pieces1/vertex} to \result{err/pieces64/vertex} with the vertex rule and to
+\result{err/pieces64/centroid} with the one-point rule, while the closed form stays at
+\result{err/pieces64/distributed} (Section~S4.5). Where nothing spins about the normal of a
+face the three rules agree.
+
+The size of those differences is a property of the battery's meshes. The flat cap of a disk is
+triangulated as a fan from a vertex of its rim: long triangles that span the face, none with a
+vertex at the centre of rotation, and more segments per turn only add more of them. To separate
+the rule from the mesh, the three rules were evaluated, in a re-implementation apart from the
+library, on a disk and a ring under a uniform pressure spinning in place, and under a tilted
+pressure sliding while spinning about a point at half the radius, for several triangulations of
+the same face (Table~\ref{tab:triangulation}, Fig.~\ref{fig:triangulation}). The closed form
+gives the same wrench on every triangulation, to round-off (largest difference
+\result{tri/closed-spread}). On the fan from the rim the one-point rule loses
+\result{tri/disk/spin/rim-fan/64/centroid/moment} of the spin torque and the vertex rule
+\result{tri/disk/spin/rim-fan/64/vertex/moment}, at any number of segments: these are the
+errors behind the battery's stop times. On a fan from the centre the one-point rule has
+\result{tri/disk/spin/centre-fan/64/centroid/moment}, while the vertex rule, which interpolates
+unit vectors from a vertex that does not slip, still loses
+\result{tri/disk/spin/centre-fan/64/vertex/moment}; when the face also slides the centre fan
+is no longer a lucky mesh for the one-point rule
+(\result{tri/disk/slide+spin/centre-fan/64/centroid/force} of the load in the force). On
+well-shaped triangles both rules converge at second order: with
+\result{tri/disk/spin/hex/4/centroid/triangles} nearly equilateral triangles the errors are
+\result{tri/disk/spin/hex/4/centroid/moment} and \result{tri/disk/spin/hex/4/vertex/moment},
+and with \result{tri/disk/spin/hex/16/centroid/triangles},
+\result{tri/disk/spin/hex/16/centroid/moment} and \result{tri/disk/spin/hex/16/vertex/moment}.
+
+So the closed form is not more accurate than a well-used quadrature: on a face meshed with a
+few hundred well-shaped triangles a one-point rule is within a few tenths of a percent, the
+level of the other errors of the battery, and Drake hydroelastic, which uses one point per
+polygon of a refined contact surface, has \result{err/disk/hydro} in \scn{disk}. What the
+closed form gives is independence: the friction wrench of a flat face does not depend on how
+the face is triangulated or on how the bodies are cut into pieces, so a flat face needs no mesh
+of its own. A quadrature needs the face remeshed, and its error then depends on the quality of
+that mesh.
+
+\begin{table}[t]
+\caption{The friction quadratures on one flat face, apart from the battery: error [\%] of the
+friction torque of a face spinning in place under uniform pressure, and of the torque and the
+force (the latter over $\mu$ times the load) of a face sliding and spinning under a tilted
+pressure, against the closed form, which is the same on every triangulation. Negative: too
+little torque}
+\label{tab:triangulation}
+\generatedtable{triangulation}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\generatedfigure[width=0.9\linewidth]{ablation_triangulation}
+\caption{Error of the spin torque of a disk under uniform pressure with the one-point rule and
+with the vertex rule, against the number of triangles of the face, for five families of
+triangulations. The closed form has no error on any of them}
+\label{fig:triangulation}
+\end{figure}
+
+\subsection{Convergence with the step and the mesh}\label{sec:convergence}
+
+\emph{Step.} The step series of the two laws are mostly flat (a slope of the logarithm of the
+error within $\pm0.2$, or every error below $2\times10^{-3}$): \result{convn/dt/distributed/flat}
+of \result{convn/dt/distributed/n} for \law{distributed} and \result{convn/dt/gonthier/flat} for
+\law{gonthier} (Section~S4.6). Their error at 1\,ms is then mostly not an error of the time
+integration but the error of the model against the reference, or of the mesh. Where it is a
+step error it falls roughly in proportion to the step (\scn{drop}, \scn{tower}), and
+\scn{massratio} shows the stability bound (Section~\ref{sec:classA}).
+
+\emph{Mesh.} The errors of \law{distributed} fall with the number of segments in
+\result{convn/mesh/distributed/converging} of the \result{convn/mesh/distributed/n} scenarios
+with curved surfaces. Two series that do not converge matter. \scn{journal} is flat
+(\result{err/journal/distributed/mesh32}, \result{err/journal/distributed} and
+\result{err/journal/distributed/mesh128} at 32, 64 and 128 segments), while \law{pcm} converges
+on it (\result{err/journal/pcm/mesh128} at 128): the geometry of \law{distributed} is exact for
+the polyhedra, but with one normal per pair of pieces its answer for a curved conforming
+contact does not converge to that of the curved bodies. \scn{cone} is not monotone
+(\result{err/cone/distributed/mesh32}, \result{err/cone/distributed},
+\result{err/cone/distributed/mesh128}), at errors below 1\,\%. In \scn{bearing} the error of
+\law{distributed} falls from \result{err/bearing/distributed/mesh32} to
+\result{err/bearing/distributed/mesh128}, and that of Drake hydroelastic from
+\result{err/bearing/hydro/mesh32} to \result{err/bearing/hydro/mesh128}: a contact surface
+without a representative normal converges faster and further on curved conforming contact. The
+series have three points, so no order is quoted.
+
+\subsection{A stiffer foundation: friction-induced flutter}\label{sec:stiffness}
+
+The stiffness series has two points, $K$ and $10K$, both at 0.2\,ms: enough to see a direction
+and not a limit (Section~S4.7). On class A the error of \law{distributed} falls by more than a
+tenth in \result{stiffn/distributed/better} of \result{stiffn/distributed/n} scenarios, among
+them those whose error was attributed above to the compliance or to the damping of the
+foundation, and
+rises in \result{stiffn/distributed/worse} (\scn{cylinder}, and \scn{massratio}, which is
+further beyond the stability bound). On class B the stiffer foundation makes the errors of the
+two laws larger in \result{stiffn/distributed/worse/B} of the five scenarios: \scn{disk} from
+\result{err/disk/distributed/dt0.2} to \result{err/disk/distributed/stiff}, \scn{cone} from
+\result{err/cone/distributed/dt0.2} to \result{err/cone/distributed/stiff}, \scn{bearing} from
+\result{err/bearing/distributed/dt0.2} to \result{err/bearing/distributed/stiff}.
+
+On the flat \scn{disk} the cause is not the explicit coupling: in diagnostic runs the error at
+$10K$ was the same at steps from 1 to 0.05\,ms.
+% Diagnostic single runs on Chrono, docs/research/anomalies.md §1: 18.1 % at 0.2 ms, 17.7 % at 0.05 ms; tilt 1.8e-5 rad at K, 1.2e-3 rad at 10 K; growth 6.6 and 32 1/s measured, 6.3 and 31 predicted.
+It is a self-excited wobble of the model. A tilt $\vect{\theta}$ of the spinning disk shifts
+the pressure, so the friction of the heavier side no longer cancels that of the lighter one: a
+net friction force of magnitude $\mu K\,(\pi R^3/3)\,\theta$ appears, and it acts at the
+contact, half the thickness $H$ of the disk below the centre of mass. Its moment,
+$N_c = \mu K\,(\pi R^3/3)\,(H/2)$ per unit of tilt, turns the tilt instead of restoring it (a
+circulatory term), and the whirl grows when
+\begin{equation}
+  \mu K\,\frac{\pi R^3}{3}\,\frac{H}{2} \;>\; c_\theta\,\omega_\theta ,
+  \qquad c_\theta = \frac{h\,m g R^2}{4}, \qquad \omega_\theta = \sqrt{\frac{K I_A}{I_t}} ,
+  \label{eq:flutter}
+\end{equation}
+with $c_\theta$ the rocking damping of the foundation under the weight $m g$,
+$I_A = \pi R^4/4$ the second moment of the face and $I_t$ the transverse moment of inertia of
+the disk, at the rate $(N_c/\omega_\theta - c_\theta)/(2 I_t)$. For the disk of the scenario
+the threshold is $K = 1.9\times10^6$\,N/m$^3$, about twice the scenario's stiffness: at $K$ the
+wobble decays, at $3K$ the condition predicts a growth of 6\,s$^{-1}$ and the diagnostic run
+showed 6.6, and at $10K$ it predicts 31\,s$^{-1}$ against 32 measured. The tilt saturates at
+$1.2\times10^{-3}$\,rad; the disk then rides on its rim, where the friction torque tends to
+$\mu N R$, and stops early. The left side of Eq.~\eqref{eq:flutter} grows with $K$ and the
+right side with $\sqrt{K}$: a foundation made stiffer at the same $h$ is less damped in
+rocking. In general the condition is $\mu K S_\rho\,z_c > c_\theta\,\omega_\theta$, with
+$S_\rho$ the first radial moment of the patch and $z_c$ the height of the centre of mass.
+Eq.~\eqref{eq:flutter} is therefore a limit of validity of the damped Winkler law with sliding
+friction under a body whose centre of mass is above the contact, and not a defect of an
+implementation: the linear model reproduces the growth rates of both laws. On the curved seats
+(\scn{cone}, \scn{bearing}) every Winkler-type method degrades at $10K$, Drake hydroelastic
+included (\result{err/cone/hydro/dt0.2} to \result{err/cone/hydro/stiff}); there the same
+self-excited motion and the sag of the facets, which is no longer small against a penetration
+ten times smaller, act together and were not separated.
+
+\subsection{Cost}\label{sec:cost}
+
+% The cost numbers are generated from results/timing.csv (scripts/bench.sh --timing on an idle
+% machine); without that file the generator falls back to the accuracy pass and labels it.
+
+Costs are wall-clock time over simulated time from \result{cost/source}: every scenario in the
+base variant, one run at a time, the median of \result{battery/timing-repeats} repeats, on an
+\result{battery/timing-machine} processor (Section~S4.8). \law{gonthier} runs at a median of
+\result{cost/gonthier/median} of real time and never above \result{cost/gonthier/max}.
+\law{distributed} has a median of \result{cost/distributed/median} and is slower than real time
+in \result{cost/distributed/slow} scenarios, the two with spheres hitting a plane, up to
+\result{cost/distributed/max}; its cost grows with the number of faces in contact. \law{pcm}
+has a median of \result{cost/pcm/median}. The point-contact and complementarity models, as
+configured, have medians between \result{cost/mjdefault/median} and
+\result{cost/dpoint/median}. Drake hydroelastic computes a contact surface between tetrahedral
+pressure fields wherever the ground is not a plane, and solves one constraint per polygon of
+that surface; as configured here and at the step of the battery, it has a median of
+\result{cost/hydro/median}, is slower than real time in \result{cost/hydro/slow} of the
+\result{cost/hydro/n} scenarios that it finished, up to \result{cost/hydro/max} times, and did
+not finish \scn{tower} within the limit.
+
+\subsection{Paired comparisons}\label{sec:ratios}
+
+Across scenarios, two methods are compared by the geometric mean of the ratio of their errors
+on the same scenarios, with errors capped at \result{rules/cap}, runs without a value counted
+at the cap, a bootstrap interval and Holm's correction over a family of \result{primary/n}
+primary comparisons: \law{distributed} against \law{gonthier}, and each of the two against one
+native model per engine, on class A and on classes A and B (Table~\ref{tab:primary};
+Section~S5 has the rules, the sensitivity analyses and the exploratory pairs). Only
+\result{primary/significant} of the \result{primary/n} survive the correction, both on classes
+A and B together: \law{distributed} has about half the error of \law{gonthier}
+(\result{robust/distributed-vs-gonthier/A+B/full}, adjusted $p = $
+\result{robust/distributed-vs-gonthier/A+B/holm}) and about a quarter of that of Chrono SMC
+(\result{robust/distributed-vs-smc/A+B/full}), the latter narrowly (adjusted $p = $
+\result{robust/distributed-vs-smc/A+B/holm}). On class A alone no difference is significant:
+the ratios of the laws to the native models are below 1 with intervals that reach above it.
+Within 5\,\% of the reference, \law{distributed} solves \result{pass/A/distributed/5} class A
+scenarios and \result{pass/B/distributed/5} of class B, and \law{gonthier}
+\result{pass/A/gonthier/5} and \result{pass/B/gonthier/5}. The scenarios are few, hand-picked
+and correlated, so these figures describe this battery and are not an estimate for other
+problems.
+
+\begin{table}[t]
+\caption{The primary comparisons: geometric mean of the ratio of the errors of two methods on
+the same scenarios (base variant; a law against a native model on that model's engine), with
+its 95\,\% bootstrap interval and the Holm-adjusted $p$ over the \result{primary/n}
+comparisons. Bold: adjusted $p$ below 0.05}
+\label{tab:primary}
+\generatedtable{primary_compact}
+\end{table}

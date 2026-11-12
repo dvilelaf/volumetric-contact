@@ -1,0 +1,2 @@
+add_executable(volcontact_bench bench.cpp)
+target_link_libraries(volcontact_bench PRIVATE volcontact::engines volcontact_warnings)

@@ -1,0 +1,444 @@
+\section{Geometry and constructions of the two laws}\label{sup:geometry}
+
+% The paper cites these subsections by number (S1.1 to S1.14): keep their order.
+
+This section gives the constructions that Section~3 of the paper names: how the overlap is
+computed, how bodies made of convex pieces are treated, how the pressure of the distributed law
+is integrated exactly, and the details of the friction, of the stiction and of the baselines.
+Table~\ref{tab:notation-full} lists the complete notation.
+
+\begin{table}[!htbp]
+\caption{Notation. Vectors are bold; all quantities are expressed in the world frame unless a
+frame is named}\label{tab:notation-full}
+\footnotesize
+\begin{tabular}{@{}lp{0.70\linewidth}@{}}
+\toprule
+Symbol & Meaning \\
+\midrule
+$A$, $B$ & the two bodies of a pair (or two of their convex pieces) \\
+$A_c$, $A_T$ & area of a flat contact; area of a triangle \\
+$\region$, $\partial\region$ & overlap $A\cap B$ of the undeformed bodies; its boundary \\
+$\partial\region_A$, $\partial\region_B$ & parts of $\partial\region$ on the surface of $A$ (inside $B$) and of $B$ (inside $A$) \\
+$V$, $\vect{c}$, $\tens{J}$ & volume, centroid and inertia tensor (unit density, about $\vect{c}$) of $\region$ \\
+$\n$ & pair normal, unit vector that pushes $A$ out of $B$ \\
+$\vect{S}_B$ & vector area of $\partial\region_B$ \\
+$\vv(\x)$, $\w$ & velocity at $\x$ and angular velocity of $A$ relative to $B$ \\
+$v_n$, $\vv_t$ & $\n\cdot\vv$ (positive when separating) and the tangential part of $\vv$ \\
+$\omega_n$, $\w_t$ & $\n\cdot\w$ and the tangential part of $\w$ \\
+$K$, $h$ & stiffness [N/m$^3$] and damping factor [s/m] of the foundation \\
+$\mu$, $\mu_s$ & kinetic and static coefficients of friction \\
+$\ell(\x)$ & length of the column of $\region$ through $\x$ along $\n$ \\
+$\varphi(\x)$ & damping factor of the pressure, $1 - h\,\n\cdot\vv(\x)$ \\
+$\gamma$ & share of a column carried by one of its ends, $\tfrac12$ or 1 \\
+$p(\x)$, $\Fn$ & pressure; normal force \\
+$\m$ & unit normal of a face or triangle \\
+$\q$, $\rr$, $\eta$ & instantaneous centre of the slip in the plane of a triangle; $\rr = \x - \q$; distance from $\q$ to the line of an edge \\
+$D$, $\vect{R}$, $\vect{U}$, $\tens{W}$ & polar moments of a triangle about $\q$ \\
+$r_g$ & radius of gyration of $\region$ about $\n$, $r_g^2 = \n\cdot\tens{J}\,\n / V$ \\
+$\rho$, $\vect{c}_p$ & radius of gyration of the pressure about its centre; centre of the normal load \\
+$\vect{M}_r$, $\vect{M}_s$ & rolling-resistance and spinning-friction torques \\
+$d$, $\tau$ & pre-sliding displacement at the static limit; time constant of the stick damper \\
+$v_s$, $s$ & stick--slip transition velocity; weight of the stick force, between 0 (sliding) and 1 (stuck) \\
+$\dt$, $w$ & time step; inverse mass seen by a contact [1/kg] \\
+$\Lambda$ & load acceleration of a body, $\sum|\Fn|\,w$ \\
+\botrule
+\end{tabular}
+\end{table}
+
+\subsection{Shapes, acceleration structures and clipping}
+
+A shape is a closed, manifold triangle mesh with outward orientation, given in the frame of its
+body. Three structures are built from it once. The first is a tree of axis-aligned bounding
+boxes over its triangles \cite{vandenBergen1997}, stored depth-first in one array. The second
+is a binary space partition (BSP) of the solid \cite{Thibault1987} whose splitting planes are
+the planes of the faces and whose leaves are either inside or outside the solid; it answers
+whether a point is inside and cuts a convex polygon into the fragments that lie inside. Its
+planes have a thickness of $10^{-10}$ times the diagonal of the bounding box of the shape:
+points within that distance of a plane are on it. The third exists only when the mesh is convex
+and is the list of its distinct face planes.
+
+The computation follows the 2018 thesis \cite{Vilela2018} in its structure. The region where
+the overlap can be is the intersection of the two bounding boxes, each expressed in the frame
+of the other and intersected again. The triangles of $A$ whose boxes meet that region are
+transformed to the frame of $B$ and clipped by the BSP of $B$, plane by plane, with the
+re-entrant polygon clipping of Sutherland and Hodgman \cite{Sutherland1974}; every fragment
+that reaches an inside leaf is a convex polygon of $\partial\region_A$. The triangles of $B$
+are clipped against $A$ in the same way and give $\partial\region_B$. Each polygon keeps the
+outward normal of its face and whether it belongs to $A$ or to $B$.
+
+The BSP of a convex mesh degenerates into a chain: every face is a node whose front subtree is
+empty, and a polygon inside the solid walks all of it. For convex shapes with more than 200
+faces the polygon is instead cut by the planes of the faces near it, found with the box tree,
+followed by one test of whether what is left lies inside the shape. The result is the same as
+that of the BSP, which the tests of the library assert.
+
+\subsection{Coincident faces}
+
+Two solids that touch along a face need a rule, because a polygon lying on a splitting plane is
+neither in front of it nor behind it, and the patch must contribute to $\partial\region$ once
+or not at all (the consistency problem discussed in the 2018 thesis \cite{Vilela2018}). A polygon of
+$A$ on a plane of $B$ counts as inside where $B$ is solid just behind it, so a face of $A$ that
+coincides with a face of $B$ of the same orientation is kept; a polygon of $B$ on a plane of
+$A$ counts only where $A$ is solid on both sides, so a face of $B$ that coincides with any face
+of $A$ is dropped. With one plane thickness for both passes (the larger of the two shapes'),
+the two passes agree on what is coplanar, and $\partial\region$ is closed up to round-off.
+
+\subsection{Volume integrals and the pair normal}
+
+The polygons are not stored for the volume integrals. As each one is produced it is split into
+a fan of triangles, and each triangle adds its term to the integrals of $1$, $x$, $y$, $z$ and of
+the six quadratic monomials over $\region$ \cite{Mirtich1996,Eberly2002}. The sums are
+accumulated about a point inside the region, which keeps the second moments well conditioned
+for overlaps that are thin slabs a few micrometres thick.
+
+For the direction, Gonthier's thesis takes the eigenvector of $\tens{J}$ nearest to a geometric
+estimate \cite{Gonthier2007thesis}, and the 2018 thesis fitted a plane to the contour where the
+two surfaces intersect \cite{Vilela2018}. Here it is the direction of the vector area
+$\vect{S}_B$ of $\partial\region_B$ (Eq.~1 of the paper). Since $\partial\region$ is closed,
+the vector areas of its two parts are opposite, $\vect{S}_A = -\vect{S}_B$, and the
+implementation uses $(\vect{S}_B - \vect{S}_A)/2$, in which the round-off of the two passes
+averages. The vector area of a surface depends only on its boundary curve: when the contour is
+planar, $\n$ is the normal of its plane, which is what the least-squares plane of the thesis
+approximated, obtained here without extracting the contour; for an edge or a vertex of one body
+pressed into a face of the other it is a weighted mean of the normals involved. Each polygon
+returns its vector area as a by-product of its volume terms.
+
+\subsection{Bodies made of convex pieces: seams}
+
+A non-convex body is given as convex pieces that fill it without overlapping. The pieces of the
+battery are generated procedurally and are exact. An approximate convex decomposition of a
+general mesh \cite{Wei2022coacd} gives pieces that overlap or leave gaps; the treatment of this
+section does not cover them, and the laws were not tested on them. One pair is evaluated for
+every combination of a piece of one body with a piece of the other, after a broad phase that
+keeps only the pieces whose boxes are near.
+
+Cutting a body introduces faces that are not surface of the body: the \emph{seams} where two
+sibling pieces meet (Fig.~\ref{fig:seams}). The seams of a piece $B_i$ that lie inside $A$ are
+part of the boundary of the overlap $A \cap B_i$, and they must stay in its volume integrals,
+which need a closed surface. They are not contact surface. When a compound body is built, every
+face of every piece is clipped against the sibling pieces with a third coplanar rule (a polygon
+counts as inside where the sibling is solid just in front of it); the fragments that have a
+sibling in front are flagged as seams, and faces that are seams only in part are
+re-triangulated. The flag travels with every polygon of $\partial\region$. Two quantities are
+then defined without the seams. The first is the pair normal used by the distributed law, the
+direction of the vector area of the faces of $B$ in $\partial\region$ that are surface of the
+body: for a piece of a faceted ground it is the normal of the facets in contact, whatever part of
+the piece the overlap covers, whereas the vector area with the seams tilts with the depth of the
+overlap at the edge of a piece. The second is the pressure: seams carry none and end no column
+(Section~\ref{sup:columns}). Gonthier's law, which uses only $V$, $\vect{c}$, $\tens{J}$ and a
+normal, keeps the full vector area.
+
+\begin{figure}[!htbp]
+\centering
+\input{figures/seams}
+\caption{A body $A$ on a ground $B$ cut into the convex pieces $B_1$ and $B_2$ (section). The
+overlap of $A$ with each piece is closed by a seam face (dashed), which enters the volume
+integrals of the piece but carries no pressure and does not end a column: the columns (thin
+lines) are those of the whole bodies. With the seam, the vector area of the faces of $B_1$ in
+the overlap tilts by the ratio of the seam to the contact face; the normal of the distributed
+law (arrows) leaves the seam out}
+\label{fig:seams}
+\end{figure}
+
+\subsection{Deep overlaps}
+
+The vector area $\vect{S}_B$ cancels when the part of $\partial\region$ on $B$ closes on itself
+or is empty: a body entirely inside another, or one that pierces another through. Near those
+configurations the normal is ill-conditioned, and a law that dropped the pair there would lose
+its force at the deepest penetrations. The intersection therefore reports no normal when
+$|\vect{S}_B| < 0.1\, V^{2/3}$ (a compact overlap bounded by $B$ on one side has a ratio of
+about 2: 1.9 for a half sphere, 2 for the corner of a cube), and the pair then keeps the normal
+of its last evaluation, stored in the frame of $B$ as part of the state of the pair: the
+direction along which the body came in. A pair that starts that deep takes the outward normal
+of the nearest surface face of a convex $B$. Both laws use this fallback.
+
+\subsection{Columns and the exact partition}\label{sup:columns}
+
+The distributed law requires convex shapes (or convex pieces), so that the overlap is convex
+and every column is a single segment. A column through a point $\x$ of the contact surface runs
+along $\vect{u} = +\n$ from a face of $A$ and along $\vect{u} = -\n$ from a face of $B$, and
+ends at the first face of the surface of either body. A face with outward unit normal $\m_f$
+and plane $\m_f\cdot\vect{y} = e_f$ ends it only if $\m_f\cdot\vect{u} > 0$, at the distance
+$(e_f - \m_f\cdot\x)/(\m_f\cdot\vect{u})$, which is an affine function of $\x$. The column
+length is the smallest of these,
+\begin{equation}
+  \ell(\x) = \min_{f\,:\;\m_f\cdot\vect{u} > 0}\; \frac{e_f - \m_f\cdot\x}{\m_f\cdot\vect{u}} ,
+  \label{eq:column}
+\end{equation}
+over the faces of both shapes that are surface of their bodies. Seams are left out of the
+minimum: behind a seam the body continues, so the columns are those of the whole bodies however
+they are cut (Fig.~\ref{fig:seams}). Only the faces that can be the first need to be examined:
+those that bound the overlap and, for a shape without seams, those within the reach of the
+polygon, found with the box tree.
+
+A column carries $K\ell$. When its two ends lie on different bodies, each end carries half
+($\gamma = \tfrac12$), so the law is symmetric in $A$ and $B$. When both ends lie on the same
+body, which happens when the overlap encloses a body or pierces it, the end that pushes $A$ out
+carries it whole ($\gamma = 1$), so that the force stays $K V$ and is continuous through the
+enclosure.
+
+On a polygon of $\partial\region$, $\ell$ is the minimum of a few affine functions. The polygon
+is split into the convex regions where each face is the one that ends the column, by clipping
+it against the lines where two of the affine functions are equal (Fig.~\ref{fig:partition}). On
+each region $\ell$ is affine, so the integrals of the elastic pressure and of its moment are
+those of a linear function over a polygon and have no quadrature error, whatever the size of
+the triangles of the mesh.
+
+\begin{figure}[!htbp]
+\centering
+\input{figures/partition}
+\caption{A polygon of the contact surface, seen along $\n$. The column length $\ell$ is the
+minimum of the affine functions $\ell_1$, $\ell_2$, $\ell_3$ of the three faces where a column can
+end; the polygon is split along the lines where two of them are equal (solid lines), and on each
+part $\ell$ is affine. Where the damping factor $\varphi$ changes sign the part is cut again (dashed
+line) and the tensile side carries no pressure}
+\label{fig:partition}
+\end{figure}
+
+\subsection{Damping along the pair normal and the exact clamp}
+
+The rate in the damping factor $\varphi = 1 - h\,\n\cdot\vv$ is measured along the pair normal,
+not along the normal of the face, for the following reason. The two ends of the column through
+$\x$ are material points of $A$ and of $B$, a distance $\ell$ apart along $\n$. The relative
+velocity field is rigid, so the velocities at the two ends differ by $\w\times\ell\n$, which has
+no component along $\n$: the quantity $\n\cdot\vv$ is the same all along the column, and it is
+the rate at which the column shortens. Sliding along $\n$'s tangent plane and spinning about
+$\n$ therefore damp nothing, on any face. Measured along the normal of each face instead, the
+slip along any face not perpendicular to $\n$ would count as an approach velocity, which on the
+seams of a many-piece bearing is a viscous drag larger than the friction itself.
+
+Without adhesion the pressure cannot be negative. The factor $\varphi$ is affine on the whole
+polygon, so where it changes sign the region is cut along the line $\varphi = 0$ and only the
+side $\varphi > 0$ is kept (Fig.~\ref{fig:partition}). On what remains, $p$ is the product of
+two affine functions, $f = \gamma K\ell$ and $\varphi$. For a triangle of area $A_T$ with
+barycentric coordinates $\lambda_k$ and vertex values $f_k$, $\varphi_k$,
+\begin{equation}
+  \int f\,\varphi\,\lambda_k\,\dd A
+  = \frac{A_T}{60}\left(F \Phi + Q + \varphi_k F + f_k \Phi + 2 f_k \varphi_k\right),
+  \label{eq:product}
+\end{equation}
+with $F = \sum_i f_i$, $\Phi = \sum_i \varphi_i$ and $Q = \sum_i f_i \varphi_i$, which follows from
+$\int \lambda_i\lambda_j\lambda_k\,\dd A = A_T\,c_{ijk}/60$ with $c_{ijk} = 6$,
+$2$ or $1$ for three, two or no equal indices. The three integrals of Eq.~\eqref{eq:product}
+give the force of the triangle and its moment exactly. They are also the integrals of the linear
+pressure with vertex values
+\begin{equation}
+  \tilde p_k = \tfrac15\left(\varphi_k F + f_k \Phi + 2 f_k \varphi_k\right) - \tfrac1{20}\left(F \Phi + Q\right),
+  \label{eq:equivalent}
+\end{equation}
+since a linear function satisfies
+$\int \tilde p\,\lambda_k\,\dd A = \tfrac{A_T}{12}(\sum_i \tilde p_i + \tilde p_k)$. Each triangle
+stores $\tilde p$. The normal force and its moment are thus exact and do not depend on how a
+polygon is triangulated; the friction sees the linear equivalent $\tilde p$, which is the exact
+pressure whenever $\ell$ or $\varphi$ is constant on the triangle.
+
+\subsection{Normal wrench and the side faces}
+
+The pressure acts along the normal of the face it is on: a triangle of $\partial\region_A$ with
+outward normal $\m$ pushes $A$ along $-\m$, one of $\partial\region_B$ along $+\m$. The normal
+wrench on $A$ is the sum over the triangles of $\int \tilde p\,\dd A$ times that direction,
+applied at $\int \tilde p\,\x\,\dd A / \int \tilde p\,\dd A$. For a flat contact the faces of
+$A$ and of $B$ in $\partial\region$ are both perpendicular to $\n$, each carries half, and the
+resultant is $K V \varphi(\vect{c})$ at the centre of pressure. On the thin side faces of an
+overlap, which are nearly parallel to $\n$, the columns are short and the pressure has no
+component along $\n$; it is a small lateral pressure of order $\delta/L$ of the normal load for
+a contact of depth $\delta$ and width $L$, and it carries friction, so that the ratio of
+friction to normal load is $\mu\,(1 + O(\delta/L))$: a systematic bias against pure Coulomb
+friction of $10^{-3}$ to $10^{-2}$ at the depths of the battery, below the thresholds at which
+the results are read. This is the difference between a pressure on the faces, which is what the
+law applies, and a traction along $\n$ per unit of projected area, which is what a strict
+Winkler bed would apply; the two agree to first order in the depth.
+
+\subsection{Friction: special cases and what is exact}
+
+Two cases fall outside the instantaneous centre of Eq.~6 of the paper. When the triangle does
+not rotate in its plane ($\omega_m = 0$) the slip is uniform, and the friction is
+$\mu\int p\,\dd A$ against it, applied at the centre of pressure of the triangle. When the
+centre is far, the three signed terms are large and nearly cancel, so the same uniform-slip
+formula is used whenever $|\omega_m|\sqrt{2A_T} \le 10^{-3}|\vv_{t0}|$, with the direction of
+the slip taken at the centre of pressure. At the switch the force changes by a relative
+$10^{-6}$ and the moment of one triangle jumps by up to about $3\times10^{-4}$ of
+$\mu\int p\,\dd A$ times its size: far below every other error of the paper, but a
+discontinuity.
+
+The friction is exact for the pressure $\tilde p$ of each flat triangle. It is not exact where
+$\tilde p$ is not the true pressure, that is, where both $\ell$ and $\varphi$ vary over a
+triangle; on a faceted body spinning in a faceted seat this leaves a residual torque of the
+nature of a rolling resistance, of order $h\,\omega\,b^2/(12\,\mu\,r)$ of the friction torque
+for facets of width $b$ at a radius $r$, which decreases with the square of the facet width. A
+face that is a seam only in part counts as surface.
+
+The check of the closed form (\code{paper/checks/check\_polar\_moments.py}) re-implements the
+formulas of the paper's Section~3.4 and Appendix~A as printed and compares them with
+quadrature that does not use them, for $\q$ outside, inside, on an edge and at a vertex of the
+triangle; the moments agree to $10^{-14}$ with a Gauss--Legendre rule where the integrand is
+analytic and to the accuracy of a midpoint rule ($10^{-5}$) elsewhere.
+% The numbers of this paragraph are those the script prints; they are not battery results.
+
+\subsection{Gonthier's law: stick--slip and the variant of the 2018 thesis}
+
+The force $\Fn = K V(1 - h\,v_n(\vect{c}))$ is exact volumetric damping, because $v_n$ is an
+affine function of position and its integral over $\region$ is $V$ times its value at the
+centroid. $\Fn$ is clamped at zero, and the rolling torque is not applied while the clamp is
+active, since the pressure whose moment it is has vanished. Between pure sliding and pure
+spinning the friction satisfies
+$(|\vect{f}_t|/\mu\Fn)^2 + (|\vect{M}_s|/\mu\Fn r_g)^2 = 1$.
+
+Stick--slip follows the thesis \cite{Gonthier2007thesis} in its structure: a sticking function
+$s = \exp(-v_\mathrm{avg}^2/v_s^2)$ blends a bristle force and a torsional bristle torque (the
+latter with stiffness and damping multiplied by $r_g^2$) with the sliding values. As in the
+thesis, the sliding values are shares of one friction budget: the force takes the fraction
+$C_{v,s} = s + (1-s)\,C_v$ of it and the spinning torque $C_{\omega,s} = s + (1-s)\,C_\omega$,
+with $C_v = |\vv_t|/\max(v_\mathrm{avg}, v_\varepsilon)$,
+$C_\omega = r_g|\omega_n|/\max(v_\mathrm{avg}, v_\varepsilon)$ and the floor
+$v_\varepsilon = v_s/100$ that avoids the division by zero at rest; the sliding targets are
+$\mu_d F_n C_{v,s}$ and $\mu_d r_g F_n C_{\omega,s}$.
+
+The implementation departs from the thesis in four points, none of which changes the sliding or
+the spinning law: the bristle is a spring--damper on the deflection blended with the sliding
+force by $s$, the regularization of Dopico et al.~\cite{Dopico2011}, instead of a bristle state
+integrated with its own differential equation; the dwell-time dependence of the static friction
+is not implemented; the normal is the vector-area normal; and $V$ and $\tens{J}$ are exact for
+the meshes, where the thesis approximates them with voxels.
+
+The law \law{gonthier-thesis} keeps the friction of the second author's thesis
+\cite{Vilela2018}. Its sliding force ignores the spin, its spinning torque is
+$\vect{M}_s = -\mu_\mathrm{spin}\,(\Fn/V)\,\tens{J}\,\omega_n\n$, which is the expression of
+the 2005 paper \cite{Gonthier2005} read with a constant coefficient and is therefore viscous
+($\mu_\mathrm{spin}$ carries s/m), and its bristle is a spring between the centroid of the
+overlap and an anchor fixed in $B$. The centroid of the overlap is not a material point: when a
+body on a flat contact of width $L$ and depth $\delta$ rocks by an angle $\theta$, the centroid
+moves by $L^2\theta/(12\,\delta)$: 0.22\,mm per microradian for $L = 0.4$\,m and
+$\delta = 60$\,\textmu m, values of the battery, so 2\,mm for a rocking of 10\,\textmu rad. The
+anchored bristle therefore stretches with nothing sliding. Gonthier's own bristle integrates
+the relative velocity at the contact, a material quantity, and that is what \law{gonthier}
+does.
+
+\subsection{Stiction}
+
+\paragraph{Transition.} The speed $u$ that drives the weight $s = \exp(-u^2/v_s^2)$ is
+Gonthier's $v_\mathrm{avg}$ in \law{gonthier}; in \law{distributed} it is its counterpart for
+the pressure distribution, $u^2 = |\vv_t(\vect{c}_p)|^2 + \rho^2\omega_n^2$, with $\vect{c}_p$
+the centre of the normal load and $\rho$ the radius of gyration of the pressure about it.
+
+\paragraph{Deflection.} The deflection is the slip of the material point of $A$ that is at the
+friction point, relative to $B$, accumulated from one evaluation to the next and kept in the
+frame of $B$; the torsional deflection accumulates the rotation of $A$ relative to $B$ about
+$\n$. The friction point is the centroid of the overlap in \law{gonthier} and the centre of the
+normal load in \law{distributed}. Because what is accumulated is the motion of material points
+between two evaluations, rolling without slipping loads no bristle, a displacement of the
+friction point caused by a change of shape of the overlap loads none either, the state is
+objective, and the accumulated slip does not depend on the time step. The state of a pair is
+the deflection, the twist, the relative pose at the last evaluation and the last pair normal.
+
+\paragraph{Stiffness proportional to the load.} With $k = \mu_s|\Fn|/d$ and $c = k\tau$ (the
+torsional bristle has $k\rho^2$ and $c\rho^2$, $r_g^2$ in \law{gonthier}), every contact
+reaches its static limit after the same displacement whatever its load, as in Gonthier's
+bristle, whose stiffness is $\mu_s/\delta_z$ times the normal force \cite{Gonthier2007thesis}.
+For a body resting on its contact under its own weight the bristle has $\omega^2 = \mu_s g/d$
+whatever the mass, and $\tau$ gives it a damping ratio $\tau\omega/2 \approx 0.55$ for
+$\mu_s = 0.5$. The sensitivity of the results to $d$ and $\tau$ was not swept.
+
+\paragraph{Limits.} The spring force never exceeds the static limit; when it would, the
+deflection is scaled back onto the limit, which is the slip of the bristle. The damper alone
+would reach the static limit at the creep velocity $d/\tau = 20$\,mm/s and brake a body that
+must slide like a viscous drag, so the total stick force, spring plus damper, is capped at the
+limit as well. In \law{gonthier} the limits of the bristle force and of the torsional bristle are
+$\mu_s\Fn$ and $\mu_s\Fn r_g$ times the shares of Gonthier's thesis, which both tend to 1 at
+stick. The static limit of \law{gonthier}, as published and as coded, is therefore a box: a
+patch at rest can hold a force of $\mu_s\Fn$ and a torque of $\mu_s\Fn r_g$ at once, up to
+$\sqrt2$ times what its friction ellipse allows. In \law{distributed} the translational and the
+torsional bristle share the friction through the limit surface of the patch, approximated by
+the ellipse of Howe and Cutkosky \cite{Howe1996},
+\begin{equation}
+  \left(\frac{|\vect{f}_\mathrm{stick}|}{\mu_s\Fn}\right)^2
+  + \left(\frac{|M_\mathrm{stick}|}{T_\mathrm{max}}\right)^2 \le 1 ,
+  \qquad T_\mathrm{max} = \mu_s\int p\,|\x - \vect{c}_p|\,\dd A ,
+  \label{eq:ellipse}
+\end{equation}
+where $T_\mathrm{max}$, the static spinning capacity of the pressure distribution, is the
+pressure-weighted polar moment $\sum(p_q D + \nabla p\cdot\vect{R})$ over the triangles, with
+the centre at $\vect{c}_p$. Limiting each bristle on its own lets a patch cut into pieces, each
+of which sees a twist of the body as slip plus twist, hold more than the whole patch. The stick
+acts in the plane of the pair normal, at the centre of the normal load and with the capacity of
+the normal load, so that it adds up over the pieces of a body. The state remains one per pair
+of pieces; a single state per pair of bodies would not do, because one body pair can touch on
+several planes whose normal loads cancel in the sum and define no tangent plane.
+
+\subsection{Properties of the distributed law}
+
+None of the following is a result of the battery. Those marked as not asserted are not covered
+by a test of the library.
+\begin{itemize}
+\item \emph{Reduction to Gonthier's law.} For a flat contact the normal force is
+  $K V(1 - h\,v_n(\vect{c}))$ at the centre of pressure, with Gonthier's rolling resistance.
+\item \emph{Closed cycle and fast paths.} The elastic force of a sphere in a faceted bowl does
+  no work over a closed cycle, and the fast paths give the same overlap and forces as the plain
+  ones.
+\item \emph{Symmetry (not asserted by a test).} Exchanging $A$ and $B$ gives the opposite wrench
+  exactly for single convex pieces and only approximately for compounds, because the pair
+  normal is taken from the non-seam faces of $B$.
+\item \emph{Independence of the triangulation} for the normal wrench (exact partition and exact
+  clamp), and \emph{independence of the decomposition}: a box sliding or spinning on a slab
+  receives the same wrench on a slab cut into pieces as on the whole slab, to a relative
+  difference below $10^{-9}$. The scenarios \scn{pieces} test the same property dynamically.
+\item \emph{Continuity in the pose (by construction, not asserted by a test).} The surface of
+  the overlap, the column lengths and the partition vary continuously with the pose, so the
+  wrench does; no face switches on or off as a sample point crosses a surface.
+\item \emph{Force at deep overlaps.} A body enclosed in another, or through it, keeps a force
+  $K V$ along the last normal.
+\end{itemize}
+The elastic force is conservative while the normal of a pair is fixed and is not exactly so
+where that normal turns with the overlap (a relative work of $10^{-4}$ over a closed cycle at
+the rim of a faceted bowl; Elandt et al.~\cite{Elandt2019} note the same of elastic-foundation
+models in general). The differentiability of the wrench was not analysed.
+
+\subsection{Baselines: departures from the publications}
+
+The baselines live in the same library, run on every engine like the two laws, receive the same
+$K$, $h$ and $\mu$, and are subject to the same step bounds (Section~\ref{sup:steps}).
+
+\paragraph{Friction quadratures.} The two variants of \law{distributed} change only the
+friction: the geometry, the pressure and its clamp, the normal wrench and the stiction are the
+same code. The vertex rule evaluates the friction $-\mu\,p_i\,\vv_{t,i}/|\vv_{t,i}|$ at the
+three vertices of each triangle (zero at a vertex that does not slip) and interpolates it
+linearly, which gives the force $\tfrac{A_T}{3}\sum_i\vect{f}_i$ and the moment of a linear
+field. The equations of Hasegawa and Sato \cite{Hasegawa2004} are used as we understood them
+from a reading of the paper made for the review of the literature; the paper was not accessible
+to us again, so the rule was not re-checked against its Eqs.~13 to~16, and it should be read as
+the vertex interpolation that the paper describes and not as a verified transcription. Their
+model, which projects the triangles on one contact plane, is not reproduced, only its friction
+quadrature.
+
+\paragraph{The per-face foundation.} In \law{pcm} both bodies carry springs, each with half the
+stiffness, so that a flat contact carries $K V$ as the other laws do; the force of a spring is
+never negative, and the friction is a continuous function of the slip velocity with the
+transition velocity $v_s$ of the other laws. The law has no stiction and keeps no state, as its
+sources have none (Simbody's documentation says that the model cannot represent stiction): a
+body loaded below its friction limit creeps. The implementation departs from the publications
+\cite{Hippmann2004,Hippmann2024,Sherman2011,SimbodyEFF} in four points, and the first two
+favour the baseline. (i) The elements are the triangles of the exact contact surface, the part
+of each face inside the other body, and not the whole faces whose centroid is inside: with the
+two triangles per face of the battery's grounds the published sampling would leave them without
+contact, and the publications ask for a fine mesh instead. What remains of the published
+discretization is one sample of depth, velocity and slip per element. (ii) The penetration is
+measured to the nearest point of the other surface, as in Simbody, and not along the normal of
+the element. (iii) The damping is the product form $\tfrac12 K A_T\,x\,(1 + h\,\dot x)$; the
+polygonal contact model has a constant areal damping. (iv) There is no viscous friction term.
+
+\subsection{Cost of a pair and of the laws}
+
+The cost of one pair is that of clipping the faces of each shape that lie in the candidate
+region against the other shape; it grows with the number of faces in the region and not with the
+size of the meshes, and it does not depend on the depth of the overlap. Pairs are independent
+and are evaluated in parallel, with one scratch workspace per thread so that no memory is
+allocated after the first step, and their wrenches are accumulated in a fixed order so that the
+result does not depend on the number of threads.
+
+The geometry is shared by the two laws. Gonthier's law adds a constant amount of arithmetic per
+pair. The distributed law adds, per polygon of the contact surface, the search for the faces
+where its columns can end, the partition, and per resulting triangle the closed forms of
+the product integral and of the polar moments; its cost grows with the number of faces in
+contact. Curved bodies meshed with many small faces are the expensive case: the cap of a
+64-segment sphere on a plane has tens of triangles in contact, a box on a plane has two. The
+measured costs are in Section~\ref{sup:cost}.

@@ -1,0 +1,244 @@
+\section{Native contact models: configurations and results of our configurations}\label{sup:natives}
+
+% The paper cites these subsections by number (S3.1 to S3.6): keep their order.
+
+Everything in this section is a result of the configurations described in
+Section~\ref{sup:native-config}. They are ours: none was reviewed by the developers of an
+engine. The paper draws from the native runs only what follows from a property of a model
+family; the results below go beyond that, several are unexplained, and none should be read as
+the performance of an engine in expert hands.
+
+\subsection{Configurations}\label{sup:native-config}
+
+Each native model has one configuration, the same for every scenario, built from the engine's
+documentation and written down with its sources in the specification of the repository
+(\code{docs/scenarios.md}, Section~3). The names are used as written here throughout;
+``point-contact models'' means the five other than Drake hydroelastic, which are a penalty
+model with one point per pair (Drake point), a penalty model on a manifold (Chrono SMC), a
+complementarity solver (Chrono NSC) and soft constraints (the two of MuJoCo). Every native run
+has a wall-clock limit of one hour in the base variant and ten minutes in the series (half an
+hour for the methods of the library).
+
+The scenario gives every method the same $K$, $h$ and $\mu$. Models whose stiffness belongs to
+a contact point (N/m) have no areal stiffness on which to map $K$; they use a reference area
+$A_\mathrm{ref}$, one sixth of the surface of a solid (the face of a cube), so that
+$K A_\mathrm{ref}$ is the stiffness of a foundation $K$ under a face of that size. This sets
+the scale and is exact only when the contact is a face of that area.
+
+\paragraph{Drake, hydroelastic} (the default native model of Drake in this paper)
+\cite{DrakeHydroGuide,DrakeHydroParams}. Planar grounds are compliant half-spaces and other
+grounds are compliant tetrahedral meshes, with hydroelastic modulus $E = K H$, $H$ being the
+depth of the pressure field, so that the pressure is $K$ times the depth: with a rigid
+counterpart this is a Winkler foundation of the same $K$ evaluated on the rigid surface. Bodies
+are rigid unless they touch another rigid body; the contact graph is two-coloured from the
+grounds. A rigid body that touches a half-space has its surface refined until no edge exceeds
+one eighth of its largest side, because Drake turns each polygon of the contact surface into one
+contact point and the guide warns that the refinement of a contact with a half-space is that of
+the other geometry; an unrefined box stands on two points. Dissipation is of Hunt--Crossley
+type with coefficient $h$, with the discrete approximation that keeps that form (``lagged''),
+and the friction coefficients of the geometries are solved so that Drake's combination rule
+gives the $\mu$ of each pair.
+
+\paragraph{Drake, point} \cite{DrakePointContact}. Compliant point contact in the same plant
+and solver, between analytic primitives or convex pieces, with point stiffness $K A_\mathrm{ref}$
+per geometry (Drake combines two geometries in series) and dissipation $h$. A box carries a
+small sphere at each corner, the device of Drake's own box models \cite{DrakeFoamBrick}, since
+one point per pair cannot hold a face.
+
+\paragraph{Chrono, SMC} (the default for Chrono) \cite{ChronoCollisions,ChronoSMCSource}.
+Analytic primitives where the scenario has them and convex pieces otherwise. Hooke's law with
+explicit coefficients: normal and tangential stiffness $K A_\mathrm{ref}/4$ per contact point
+(a face contact has a manifold of four), and a normal damping that is the Hunt--Crossley term
+linearized at the static penetration under the body's weight. In the version used, the
+Jacobians of the contact force are disabled in the source and the tangential displacement is
+that of one step, so the model is explicit and has no stiction memory; the backend sub-steps so
+that the contact oscillation is resolved with at least 60 steps, and uses the stiffest tangential
+damping that an explicit step integrates, which bounds the creep of a held body but does not
+remove it.
+
+\paragraph{Chrono, NSC} \cite{ChronoSystem}. The complementarity formulation for rigid contact,
+with the same shapes, the pair's $\mu$ and zero restitution; $K$ and $h$ do not enter. Solved
+with the Barzilai--Borwein method \cite{Barzilai1988}, which the manual recommends when
+accuracy matters.
+
+\paragraph{MuJoCo, soft} (the default for MuJoCo) \cite{MuJoCoDocs,MuJoCoModeling}. MuJoCo's
+contact model with the values that its manual recommends for new models: analytic primitives
+or convex pieces, elliptic friction cones, a tight solver tolerance, a few no-slip iterations
+and the \code{implicitfast} integrator. The stiffness of the constraint is set so that the
+static force of a flat contact is $K A_\mathrm{ref}$ times the penetration; only the statics
+are a spring's, because the constraint also removes a fixed share of the load that presses the
+bodies together. Damping is critical: MuJoCo's damper is linear and cannot follow the dependence
+of the Hunt--Crossley restitution on the impact speed. Each contact has torsional friction with
+the coefficient of a disk of its patch area under uniform pressure.
+
+\paragraph{MuJoCo, default.} The same geometry with MuJoCo's own default parameters and
+options: what a user obtains without changing anything. $K$ and $h$ do not enter.
+
+\subsection{Revisions and known asymmetries}
+
+The configurations were not fixed blind: after the first complete run of the development
+scenarios several options were revised with the errors of the battery in view. The revisions
+were the refinement of rigid surfaces to one eighth of the largest side for Drake's
+hydroelastic contact (\scn{block} went from 13 to 1.4\,\%), the corner spheres of boxes for
+Drake's point contact (\scn{block} from 98 to 0.1\,\%), the solver tolerance and the reference
+area for MuJoCo (\scn{stack} from 33 to 0.16\,\%) and the choice of the Barzilai--Borwein solver
+for Chrono NSC. Each revision was a setting applied to every scenario and was chosen from a
+sweep over all of them, never per scenario; they are nonetheless iterations on the scores of
+the development set, fewer than those of the laws, recorded in the history of the repository
+(\code{docs/history.md}, entries of 11 November 2026). % The four figures are those of that history, single runs on the development scenarios.
+
+Drake's point contact gives a box a small sphere at each corner and
+gives a cylinder or a disk nothing: its flat face touches the ground at one point, so the errors
+and the runs without a stop time of that model on \scn{disk}, \scn{contensou} and \scn{cone} are
+in part a consequence of our configuration and not of the model. Chrono SMC is sub-stepped by the
+backend (between 1 and 15 sub-steps per step of the battery), so its step is not the step of the
+other methods, in the convergence series and in the costs. The reference area $A_\mathrm{ref}$ is
+a scale: for bodies that are not cubes (the plates of \scn{offset} and \scn{tower}, the disk) the
+point stiffness of a native model differs from that of the foundation under the face in contact by
+factors of 2 to 3. The static penetration of each native model was not compared with the
+foundation's scenario by scenario. MuJoCo's recommended configuration misses \scn{block}, the
+simplest scenario, by \result{err/block/soft} (\result{pertrange/block/soft/range} over the
+perturbed starts); a configuration reviewed by a user of that engine would probably not, and the
+result should not be read as representative of expert use.
+
+\subsection{Results by class}
+
+The errors are in the tables of the paper (Tables~3 to~5) and in Section~\ref{sup:errors}.
+
+\emph{Class A.} On the seven scenarios of a body sliding or rolling on one plane, Drake point
+and Chrono NSC are as accurate as the two laws or more: in
+\result{within/oneplane/dpoint+nsc/0.4} of them the errors of both models are below 0.4\,\%,
+though Drake point misses \scn{vgroove} by \result{err/vgroove/dpoint}. MuJoCo soft has
+\result{err/block/soft}, \result{err/twoblocks/soft} and \result{err/billiard/soft} in
+\scn{block}, \scn{twoblocks} and \scn{billiard}, and MuJoCo default \result{err/push/mjdefault}
+and \result{err/twoblocks/mjdefault} in \scn{push} and \scn{twoblocks}. Chrono SMC, which has
+no stick memory in the version used, creeps in \scn{push} and \scn{wedge}
+(\result{err/push/smc}, \result{err/wedge/smc}). In \scn{bowl} and \scn{trough} the native
+models lose between \result{err/bowl/smc} and \result{err/trough/soft} of the amplitude. In
+\scn{turntable} Drake point keeps the orbit, with \result{err/turntable/dpoint} and
+\result{pertrange/turntable/dpoint/range} over the perturbations; the base run of Chrono NSC
+(\result{err/turntable/nsc}) is the best of its perturbed starts
+(\result{pertrange/turntable/nsc/range}, median \result{pertrange/turntable/nsc/median}). In
+\scn{journal}, Drake hydroelastic and MuJoCo soft are within 5\,\% (\result{err/journal/hydro},
+\result{err/journal/soft}; \result{pertrange/journal/soft/range} when perturbed), and Drake
+point and Chrono's two models are between \result{err/journal/smc} and
+\result{err/journal/nsc}. On the cut ground Chrono's models depend on the cut
+(\result{err/pieces64/smc}, and \result{err/pieces2/nsc} for NSC already on two pieces). In
+\scn{wedge}, Chrono NSC, MuJoCo soft and Drake point hold the block that must hold. In
+\scn{oblique} Chrono SMC and Drake point, on a sphere, are within 0.6\,\%. Chrono NSC and MuJoCo
+soft hold \scn{tower} and \scn{massratio} within 1\,\%; Drake hydroelastic holds \scn{massratio}
+and did not finish \scn{tower}; Drake point, which uses the same solver, loses both
+(\result{err/massratio/dpoint} and \result{err/tower/dpoint}), so being implicit in the contact
+force is not sufficient. In \scn{energy} every native model but Chrono SMC has an error above
+20\,\% (Drake point \result{err/energy/dpoint}).
+
+\emph{Class B.} Drake point, Chrono NSC and the two MuJoCo models are each outside the band in
+\result{band/dpoint/outside} of the five scenarios; Chrono SMC is outside in
+\result{band/smc/outside} and has no stop time in \result{band/smc/none}
+(Table~\ref{tab:band}). Their errors against the nominal value go from \result{err/ring/smc}
+(Chrono SMC in \scn{ring}, below the \result{err/cone/hydro} of Drake hydroelastic in
+\scn{cone}) to \result{err/bearing/nsc}. Drake hydroelastic is inside the band in
+\result{band/hydro/inside} scenarios and undetermined in the others, with \result{err/disk/hydro}
+in \scn{disk}.
+
+\emph{Class C.} Drake hydroelastic is within 5\,\% in \result{pass/C/hydro/5}; \scn{tip} ends
+without a value with every point-contact model, as designed: a box on stiff points tips at the
+rigid angle, which the ramp of the scenario never reaches.
+
+\emph{Step, mesh and stiffness.} Drake hydroelastic is the method whose error depends most on
+the step: it converges in \result{convn/dt/hydro/converging} series, and its errors at 1\,ms in
+the rolling and impact scenarios are step errors. It holds \scn{massratio} at every step at
+which it finished, as do Chrono NSC and the two MuJoCo models. Chrono SMC is sub-stepped by the
+backend, so its series is not one of the step of the battery. With $K\times10$ the errors of
+Drake hydroelastic on class A fall in \result{stiffn/hydro/better} of \result{stiffn/hydro/n}
+scenarios, and on the flat \scn{disk} its error does not rise (\result{err/disk/hydro/stiff}).
+
+\subsection{Scatter under perturbation}\label{sup:scatter}
+
+Over the eight perturbations of the initial velocities (1\,mm/s and 0.01\,rad/s, from a seeded
+generator), the range of the error relative to its median has a median over the scenarios of
+\result{pert/hydro} for Drake hydroelastic and \result{pert/soft} for MuJoCo soft, and of
+\result{pert/dpoint}, \result{pert/nsc} and \result{pert/smc} for Drake point, Chrono NSC and
+Chrono SMC (for the two laws, \result{pert/gonthier} and \result{pert/distributed}). The base
+errors are therefore representative of nearby initial conditions for Drake hydroelastic and for
+MuJoCo soft, and less so for Drake point and the two Chrono models.
+Table~\ref{tab:perturbations} lists the cells of classes A and B in which the perturbed runs of
+a native model differ by more than a factor of 2 or lose a run: for those, the base value is
+one draw and the median is the better summary. Chrono NSC in \scn{disk} has
+\result{err/disk/nsc} in the base run and \result{pertrange/disk/nsc/range} over the
+perturbations (median \result{pertrange/disk/nsc/median}).
+
+\begin{table}[!htbp]
+\caption{Native models whose error scatters over the eight perturbed starts (classes A and B):
+error [\%] of the base run, median and range of the perturbed runs that have a value, and number
+of perturbed runs without one}
+\label{tab:perturbations}
+\generatedtable{perturbations}
+\end{table}
+
+\subsection{Unexplained results}
+
+The following results of our configurations have no explanation, and any of them may be an
+effect of the configuration. Drake hydroelastic: \scn{hole} (\result{err/hole/hydro}),
+\scn{corner} (\result{err/corner/hydro}) and \scn{stack} (\result{err/stack/hydro}), none of
+which falls with the step; \scn{tower} and the smallest steps of \scn{stack} and
+\scn{massratio} reach the time limit. Chrono NSC: \scn{oblique} and most of \scn{restitution}
+end without a rebound value (the model was given zero restitution, so it was not expected to
+meet the rebounds, but why some are not produced at all was not traced), \scn{edge} has
+\result{err/edge/nsc}, and its mesh variants on \scn{disk} and \scn{turntable}
+(\result{err/disk/nsc/mesh32} and \result{err/turntable/nsc/mesh32} at 32 segments,
+\result{err/disk/nsc/mesh128} and \result{err/turntable/nsc/mesh128} at 128) differ from its
+base runs (\result{err/disk/nsc}, \result{err/turntable/nsc}) although its shapes are analytic
+primitives; the scatter of the model over nearby starts is of that size, and what else differs
+between those runs was not traced. MuJoCo default: \scn{edge} (\result{err/edge/mjdefault}).
+The runs of \scn{disk} and \scn{contensou} with Chrono SMC and Drake point, and of \scn{cone}
+with the latter, end without a stop time: in the diagnostic runs of Chrono SMC the spinning
+body wobbled on its rim and kept a spin above the 1\,\% that defines the stop; Drake's runs
+were not traced, and its disk stands on one point by our configuration.
+
+\subsection{A choice of model by situation, as configured}
+
+Table~\ref{tab:decision-natives} adds to the table of the paper's discussion what the runs of
+our configurations show about particular native models.
+
+\begin{table}[!htbp]
+\caption{Native models by situation, as far as our configurations show (classes A and B, base
+variant)}
+\label{tab:decision-natives}
+\footnotesize
+\begin{tabular}{@{}p{0.27\linewidth}p{0.27\linewidth}p{0.40\linewidth}@{}}
+\toprule
+Situation & Native models that did well & Evidence \\
+\midrule
+A rigid body sliding or rolling on one plane; sphere and cylinder contacts &
+  Drake point, Chrono NSC &
+  \scn{block}, \scn{sphere}, \scn{cylinder}, \scn{twoblocks}: Drake point
+  \result{err/block/dpoint}, \result{err/sphere/dpoint}, \result{err/cylinder/dpoint},
+  \result{err/twoblocks/dpoint}; \law{distributed} \result{err/block/distributed},
+  \result{err/sphere/distributed}, \result{err/cylinder/distributed},
+  \result{err/twoblocks/distributed} \\
+A flat face that spins, or slides and spins &
+  Drake hydroelastic &
+  \scn{disk}: \result{err/disk/hydro}; \law{distributed} \result{err/disk/distributed};
+  point-contact models outside the band or scattered (Tables~\ref{tab:band}
+  and~\ref{tab:perturbations}) \\
+Curved conforming contact &
+  Drake hydroelastic &
+  \scn{bearing} at 128 segments: \result{err/bearing/hydro/mesh128}; \law{pcm}
+  \result{err/bearing/pcm/mesh128}, \law{distributed} \result{err/bearing/distributed/mesh128} \\
+A body held by friction near its limit &
+  Chrono NSC, MuJoCo soft, Drake point &
+  \scn{wedge}: \result{err/wedge/nsc}, \result{err/wedge/soft}, \result{err/wedge/dpoint};
+  Chrono SMC \result{err/wedge/smc} \\
+Stiff contacts on light bodies, large mass ratios, tall stacks at large steps &
+  Chrono NSC, MuJoCo soft; Drake hydroelastic where its cost allows. Not every implicit solver &
+  \scn{massratio} at 1\,ms: Chrono NSC, MuJoCo soft and Drake hydroelastic within
+  \result{err/massratio/soft}; Drake point \result{err/massratio/dpoint}, and
+  \result{err/tower/dpoint} in \scn{tower} \\
+Long rolling &
+  Drake point &
+  \scn{turntable}: \result{err/turntable/dpoint} (\result{pertrange/turntable/dpoint/range}
+  perturbed); the laws \result{err/turntable/distributed} \\
+\botrule
+\end{tabular}
+\end{table}

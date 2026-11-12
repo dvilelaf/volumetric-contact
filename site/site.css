@@ -1,0 +1,63 @@
+@font-face { font-family: Barlow; font-weight: 400; src: url(viewer/vendor/barlow-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: Barlow; font-weight: 500; src: url(viewer/vendor/barlow-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow Semi Condensed"; font-weight: 500; src: url(viewer/vendor/barlow-semi-condensed-latin-500-normal.woff2) format("woff2"); }
+
+/* The viewer's test-report look: paper, ink, one panel colour. The scenario index is the page's one
+   distinctive element: a table of contents you can open. */
+:root { --paper: #ECEEF0; --panel: #F8F9FA; --ink: #14181C; --text: #23272B; --muted: #5E6770; --line: #C9CED4; --focus: #1F5FBF; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper); color: var(--text);
+  font: 400 17px/1.5 Barlow, system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  padding: 20px 28px 40px;
+}
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { background: #E1E5E9; }
+p { margin: 0 0 14px; }
+h1, h2 { font-family: "Barlow Semi Condensed", Barlow, sans-serif; font-weight: 500; color: var(--ink); margin: 0; }
+h1 { font-size: 32px; line-height: 1.2; }
+h2 { font-size: 24px; line-height: 1.2; margin-bottom: 10px; }
+code { font-size: .92em; }
+
+.top, main, footer { max-width: 1080px; margin: 0 auto; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px;
+  border-bottom: 2px solid var(--ink); padding-bottom: 6px; margin-bottom: 36px; }
+.top nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 16px; }
+.top nav a.primary { font-weight: 500; }
+
+section { margin-bottom: 44px; }
+.claim { font: 500 clamp(26px, 4.2vw, 40px)/1.15 "Barlow Semi Condensed", Barlow, sans-serif; color: var(--ink); max-width: 30ch; margin-bottom: 20px; }
+.hint, .note, .absent { color: var(--muted); font-size: 15px; }
+
+.scenarios { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0 28px; }
+.scenarios li { border-top: 1px solid var(--line); }
+.scenarios a { display: flex; align-items: baseline; gap: 10px; padding: 7px 4px; text-decoration: none; }
+.scenarios b { font-size: 12px; font-weight: 500; background: var(--ink); color: var(--paper); border-radius: 10px; padding: 0 8px; flex: none; }
+.scenarios a:hover b { background: var(--focus); }
+
+table { border-collapse: collapse; background: var(--panel); width: 100%; font-size: 16px; }
+th, td { text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--line); }
+thead th { border-bottom: 2px solid var(--ink); font-weight: 500; }
+.num { text-align: right; white-space: nowrap; }
+.results { overflow-x: auto; }
+
+figure { margin: 0 0 22px; }
+figure img { max-width: 100%; height: auto; background: var(--panel); }
+figcaption { color: var(--muted); font-size: 15px; }
+footer { border-top: 1px solid var(--line); padding-top: 12px; color: var(--muted); font-size: 15px; }
+
+@media (max-width: 600px) { body { padding: 14px; } .claim { max-width: none; } }
+
+/* The ranking: four answers, then the table they come from. */
+.picks { list-style: none; margin: 14px 0 22px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.picks li { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--ink); border-radius: 4px; padding: 10px 14px 12px; }
+.picks b { display: block; font-weight: 500; color: var(--muted); font-size: 14.5px; line-height: 1.3; margin-bottom: 6px; }
+.picks span { display: block; color: var(--ink); line-height: 1.35; }
+.ranking th[scope=row] { font-weight: 400; }
+.note strong { font-weight: 700; color: var(--ink); }
+.ranking thead th { vertical-align: bottom; line-height: 1.25; }
+.ranking .sub { display: block; font-size: 12.5px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+@media (max-width: 700px) { .ranking { display: block; overflow-x: auto; } }
+.mark { font-style: normal; font-size: 12px; font-weight: 500; background: var(--ink); color: var(--paper); border-radius: 9px; padding: 1px 8px; margin-left: 8px; white-space: nowrap; }

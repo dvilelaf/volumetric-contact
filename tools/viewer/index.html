@@ -1,0 +1,80 @@
+<!doctype html>
+<!-- Static page. data-traj: folder with index.json and the trajectories; data-assets: folder the
+     mesh paths inside the trajectories (data/...) are relative to. Both relative to this page. -->
+<html lang="en" data-traj="../../results/traj/" data-assets="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volumetric contact viewer</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="vendor/uPlot.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div id="titleline">
+    <h1><select id="scenario" aria-label="Scenario" title="Choose a scenario"></select></h1>
+    <span id="class" tabindex="0" hidden></span>
+  </div>
+  <p id="setup"></p>
+  <p id="tests"></p>
+  <p id="theory"></p>
+  <div id="variantline">
+    <div id="variants" class="segmented" role="radiogroup" aria-label="Run"></div>
+    <div id="variantsub" class="segmented" role="radiogroup" aria-label="Variant" hidden></div>
+    <p id="variantnote"></p>
+  </div>
+</header>
+
+<main>
+  <section id="view" class="box" aria-label="3D view">
+    <div class="boxbar">
+      <span id="hint">Drag to rotate, right-drag to pan, scroll to zoom</span>
+      <div id="render" class="segmented small" role="radiogroup" aria-label="Rendering"></div>
+      <button id="reset" class="icon" title="Reset the view (R, or double-click the view)" aria-label="Reset the view">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.2"/></svg>
+      </button>
+    </div>
+    <div id="scene" class="boxbody"></div>
+    <p id="message" hidden></p>
+  </section>
+
+  <section id="plotbox" class="box" aria-label="Plots">
+    <div class="boxbar">
+      <span class="key"><i class="k-theory"></i>Theory</span>
+      <span class="key"><i class="k-run"></i>Simulated runs, coloured as in the table</span>
+      <span id="plothint">Click a plot to move the time</span>
+    </div>
+    <div id="plots" class="boxbody"></div>
+  </section>
+
+  <section id="transport" aria-label="Playback">
+    <button id="restart" class="icon" title="Restart (Home)" aria-label="Restart">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5a6.5 6.5 0 1 0 2-4.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4.5v4.6h4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button id="prev" class="icon" title="One sample back (←)" aria-label="One sample back">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2.4v14H6zM19 5v14l-9-7z"/></svg>
+    </button>
+    <button id="play" class="icon main" title="Play or pause (space)" aria-label="Play">
+      <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+      <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 5h4v14h-4zM13.5 5h4v14h-4z"/></svg>
+    </button>
+    <button id="next" class="icon" title="One sample forward (→)" aria-label="One sample forward">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 5H18v14h-2.4zM5 5v14l9-7z"/></svg>
+    </button>
+    <input id="seek" type="range" min="0" max="1" step="any" value="0" aria-label="Time">
+    <output id="time"></output>
+    <label id="speedlabel">Playback
+      <select id="speed" aria-label="Playback speed" title="Playback speed"></select>
+    </label>
+  </section>
+
+  <section id="tablebox" aria-label="Runs">
+    <div id="tablescroll"><table id="runs"><thead></thead><tbody></tbody></table></div>
+    <p id="tablenote"></p>
+  </section>
+</main>
+<script type="importmap">{"imports": {"three": "./vendor/three.module.js"}}</script>
+<script type="module" src="viewer.js"></script>
+</body>
+</html>

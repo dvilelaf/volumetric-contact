@@ -1,0 +1,80 @@
+# Continuous integration on hosted runners.
+#
+# The full toolchain (Drake, Chrono, MuJoCo; docker/Dockerfile) is several gigabytes and is not built
+# here: the `docker` workflow does that by hand. This one covers what builds anywhere: the
+# engine-independent core library with its tests and C API, the install/find_package check, the
+# Python tools, and a secrets scan.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends cmake ninja-build g++ libeigen3-dev
+      - name: Install build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install eigen ninja
+      - name: Install build dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          vcpkg install eigen3:x64-windows
+          echo "CMAKE_PREFIX_PATH=$(cygpath -m "$VCPKG_INSTALLATION_ROOT")/installed/x64-windows" >> "$GITHUB_ENV"
+      - name: MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure (core only)
+        shell: bash
+        run: >
+          cmake -S . -B build/core -DCMAKE_BUILD_TYPE=Release
+          -DVOLCONTACT_BUILD_BENCHMARK=OFF -DVOLCONTACT_BUILD_TESTS=ON
+          -DVOLCONTACT_WITH_DRAKE=OFF -DVOLCONTACT_WITH_CHRONO=OFF -DVOLCONTACT_WITH_MUJOCO=OFF
+      - name: Build core tests (core library and C API)
+        shell: bash
+        run: cmake --build build/core --target volcontact_core_tests
+      - name: Run core tests
+        shell: bash
+        run: ctest --test-dir build/core --output-on-failure
+      - name: Install check (find_package and FetchContent)
+        shell: bash
+        env:
+          VOLCONTACT_CHECK_SHARED: ${{ runner.os == 'Windows' && 'OFF' || 'OFF ON' }}
+        run: scripts/check-install.sh
+
+  python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Lint
+        run: uvx ruff check tools site
+      - name: Tests
+        run: uv run --quiet --with pytest --with numpy --with scipy --with matplotlib --with trimesh pytest -q tools/tests
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks git --no-banner --redact

@@ -1,0 +1,91 @@
+\section{Introduction}\label{sec:introduction}
+
+Contact between the bodies of a multibody system is most often modelled at a point: a penalty
+force that grows with the penetration depth, in the tradition of Hertz's theory
+\cite{Hertz1882,HuntCrossley1975,Lankarani1990}, or a unilateral constraint with Coulomb friction
+solved as a complementarity or a convex problem \cite{Stewart1996,Anitescu1997,Todorov2014}. Both
+assume that the contact patch is small against the bodies. The reviews of contact-force models in
+multibody dynamics describe the many variants of the first kind and their common ground in
+non-conforming contact \cite{Machado2012,Skrinjar2018,Corral2021,Flores2022}.
+
+Many contacts of practical interest do not satisfy that assumption. A flat part rests on a table,
+a pin sits in a hole, a journal turns in a bearing, a stack of boxes leans, a gripper holds an
+object between two pads. In these \emph{conforming} contacts the patch has an extent that
+matters: the friction torque of a spinning disk, the tilt of an eccentric load, the angle at
+which a tall body tips over a soft support or the force that holds a press fit all depend on how
+the pressure is distributed over the patch. A point-contact model either does not represent
+those effects or represents them through extra parameters, such as a torsional friction
+coefficient with units of length, that the user must supply for each geometry.
+
+Several families of models address the patch directly. Elastic-foundation models cover a body
+with a bed of independent springs \cite{Johnson1985} and sum their forces over a discretized
+surface; the polygonal contact model \cite{Hippmann2004} and Simbody's elastic foundation force
+\cite{Sherman2011} are its established forms in multibody simulation. Volumetric models
+\cite{Gonthier2005,Gonthier2007thesis} integrate the same foundation in closed form for a flat
+patch and express the contact wrench through the volume, the centroid and the inertia tensor of
+the overlap of the two undeformed bodies. Hasegawa and Sato \cite{Hasegawa2004} integrate a
+distributed spring and damper over the exact intersection of convex polyhedra. Pressure-field
+(hydroelastic) contact \cite{Elandt2019,Masterjohn2022} defines a pressure field inside each
+body and a contact surface where the two fields are equal, and it is the patch model of the
+Drake toolbox \cite{Drake}.
+
+These models have been validated by their authors on a few cases each, and the published
+comparisons of simulators do not fill the gap. The comparisons from robotics test solvers on
+point contacts, by consistency under refinement, by physical criteria or against recorded
+impacts \cite{Erez2015,Horak2019,Acosta2022,LeLidec2024}. The benchmark tradition of the
+multibody community \cite{Gonzalez2006,Gonzalez2010,IFToMMBenchmark} is built on mechanisms with
+ideal joints. Conformal contact has been studied where it matters most to that community, in
+revolute joints with clearance, with finite-element and analytic references for the cylindrical
+contact force \cite{Liu2007,Pereira2011,Pereira2015}, and comparisons of contact formulations
+and of frictional-contact solvers exist \cite{Drumwright2011,Acary2018}. We did not find a set of
+conforming-contact problems with analytic references that has been run across model families
+and across engines.
+
+This paper offers such a set and uses it. Its origin is the second author's doctoral thesis
+\cite{Vilela2018}, which evaluated Gonthier's volumetric model on the exact intersection of two
+triangle meshes inside one multibody code and tested it on three problems. The work reported
+here re-implements that pipeline as a library that does not depend on the multibody engine,
+adds a second law that integrates the same elastic foundation over the contact surface instead
+of lumping it, and runs both, next to two baselines from the literature and the native contact
+models of three engines, on a battery of problems with known answers.
+
+The paper is a benchmark and a comparison; it does not propose a new contact model. The second
+law, which we call \law{distributed}, belongs to the line that goes from Hasegawa and Sato
+\cite{Hasegawa2004} through Gonthier \cite{Gonthier2005}, Hippmann's polygonal contact model
+\cite{Hippmann2004} and Simbody's elastic foundation \cite{Sherman2011} to hydroelastic contact
+\cite{Elandt2019}: the same Winkler foundation, here integrated exactly over the faces of the
+polyhedral overlap. Section~\ref{sec:related} states what is taken from that line. The
+contributions we claim are the following.
+\begin{enumerate}
+\item A battery of conforming- and patch-contact problems with analytic references, each
+  classified by what its reference assumes (classes A, B and C), with a band of admissible
+  pressure distributions for the references that assume one (Section~\ref{sec:benchmark}).
+\item The findings, which are mechanisms: what a point contact cannot represent, what the
+  lumping of Gonthier's model costs, and the failures of the two laws of this paper, each with
+  a prediction that the runs match (the rolling resistance of the damped foundation, a
+  friction-induced flutter with its stability condition, the stability bound of the explicit
+  coupling, the compliance of the foundation) (Section~\ref{sec:results}).
+\item A closed form for the Coulomb friction force and moment of a linear pressure on a
+  triangle when the slip is a rigid motion (Section~\ref{sec:friction},
+  Appendix~\ref{app:polar}). It is a short technical result: the closed form for uniform
+  pressure on a polygon is known \cite{Jia1997}, and the linear term uses the same primitives.
+  Earlier work on distributed contact interpolates the friction from the vertices or samples it
+  at one point per face \cite{Hasegawa2004,ElandtThesis2022}. What the closed form gives is a
+  friction wrench that does not depend on the triangulation of a flat face or on how a body is
+  cut into pieces; element quadratures reach the same accuracy only on a refined, well-shaped
+  mesh (Section~\ref{sec:ablation}).
+\item An open-source, engine-independent implementation of both laws on the exact intersection
+  of triangle meshes, with backends for Drake, Project Chrono and MuJoCo
+  (Section~\ref{sec:methods}). ``Exact'' refers to the polyhedra given and to the normal
+  wrench; the friction is exact for the linear equivalent of the pressure on each triangle.
+\end{enumerate}
+
+Section~\ref{sec:limitations} states the limits of this evidence in one place; the main ones are
+that every reference is analytic and that the configurations of the native models are ours. The
+constructions, the stability analysis, the native configurations with their results, the
+complete tables and the statistical inference are in the supplementary material, cited as
+Sections~S1 to~S5.
+
+This work, from the implementation to the analysis and the text, was carried out by a
+generative AI system, the model Claude Fable~5.2, listed as first author, under the direction and
+supervision of the second author; the Declarations give the details.

@@ -1,0 +1,34 @@
+% The numbers of the abstract come from generated/numbers.tex like every other result, except
+% the 18 % of the finite-element reference, typed from Table tab:fem (tools/fem, results/fem).
+\abstract{Conforming contact, where the patch is not small against the bodies, is where
+point-contact models are least reliable, and the families that address it (volumetric models,
+elastic foundations, pressure fields) have not been compared on common problems with known
+answers. We present a battery of \result{battery/scenarios} conforming- and patch-contact
+scenarios with analytic references, classified by what each reference rests on: a rigid-body
+result (class A), an assumed pressure distribution (B, read against the band of admissible
+distributions) or the elastic-foundation model itself (C, a consistency check). On it we run two
+elastic-foundation laws evaluated on exact mesh intersections, Gonthier's lumped volumetric
+model and a distributed law that integrates the same foundation over the contact surface, two
+literature baselines and six native contact models of Drake, Chrono and MuJoCo, in
+\result{battery/runs} runs. The findings are mechanisms. On class B no elastic-foundation
+method is outside the band in any of the five scenarios, while a face held at points of its rim
+has the friction torque of a ring. The failures of the two laws are explained with predictions
+that match the measurements: the rolling resistance of the damped foundation (an orbit predicted
+to grow by 77\,\%, measured \result{err/turntable/distributed}), a friction-induced flutter on
+stiffer foundations with its threshold and growth rates, the stability bound of the explicit
+coupling, and the compliance of the foundation. A closed-form Coulomb friction wrench for a
+linear pressure on a triangle, the one new ingredient, makes friction independent of the
+triangulation: one-point and vertex quadratures change a disk's spin torque by
+\result{tri/disk/spin/rim-fan/64/centroid/moment} and
+\result{tri/disk/spin/rim-fan/64/vertex/moment} on the battery's fan triangulation and converge
+on well-shaped meshes. Each law gives the same errors on the three engines. With one normal per
+pair of convex pieces the distributed law does not converge with the mesh on a curved
+conforming contact. Of \result{primary/n} paired comparisons of errors, \result{primary/significant}
+survive a correction for multiplicity, one of them narrowly. A finite-element solution of two
+class B scenarios places a continuum support in the band: on the foundation's cosine for a thin
+sleeve, and at the rigid-punch end for a thick slab, against which the distributed law and
+Drake's hydroelastic contact, which integrate the foundation correctly, stop a spinning disk
+18\,\% late, a limit of the Winkler foundation and not of its discretization. There is no
+experimental reference, and the configurations of the native models are ours and unreviewed.
+The work was carried out by an AI system (Claude Fable~5.2, first author) directed
+and supervised by the second author.}

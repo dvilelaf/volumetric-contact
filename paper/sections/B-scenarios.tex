@@ -1,0 +1,70 @@
+\section{Parameters and references of the scenarios}\label{app:scenarios}
+
+% Transcribed from docs/scenarios.md §4.2 and §4.3 at commit 2b917f6. These are parameters of
+% the design, not results. If the specification changes, change these tables with it.
+
+Tables~\ref{tab:scenarios-dev} and~\ref{tab:scenarios-heldout} give the parameters, the reference
+and the error terms of the scenarios of Table~\ref{tab:scenarios}. Common to
+all: $g = 9.81$\,m/s$^2$; an incline is a tilted gravity, ramped where it must be quasi-static;
+the planar ground is a slab of $40\times40\times1$\,m; $h = 5$\,s/m except where stated;
+$\mu_s = \mu$; masses are 1\,kg unless stated, with the inertia of the true solid; a body
+``stops'' when its speed falls below 1\,\% of the initial one. The specification in the
+repository gives the dimensions of every body, the duration of every run and the derivation
+of every reference.
+
+\begin{table}[!htbp]
+\caption{Development set. $K$ in N/m$^3$. For class B the band of admissible pressure
+distributions is given as the factor on the nominal stop time}
+\label{tab:scenarios-dev}
+\footnotesize
+\begin{tabular}{@{}p{0.11\linewidth}p{0.03\linewidth}p{0.05\linewidth}p{0.05\linewidth}p{0.30\linewidth}p{0.30\linewidth}@{}}
+\toprule
+Scenario & Cl. & $K$ & $\mu$ & Set-up & Reference and error terms \\
+\midrule
+\scn{block} & A & $10^6$ & 0.5 & Box sliding down $30^\circ$ & $a = g(\sin\theta - \mu\cos\theta)$; final velocity \\
+\scn{cylinder} & A & $10^6$ & 0.6 & Cylinder rolling down $15^\circ$ from rest & $a = \tfrac23 g\sin\theta$ at zero speed; slip \\
+\scn{push} & A & $10^6$ & 0.5 & Box pushed by a force growing at 2\,N/s & Onset at $t^* = \mu m g/c$, then $v = c(t-t^*)^2/2m$; velocity, onset time, creep \\
+\scn{billiard} & A & $10^8$ & 0.2 & Ball launched at 2\,m/s without spin & Rolls from $t^* = 2v_0/(7\mu g)$ at $5v_0/7$; onset time and velocity \\
+\scn{vgroove} & A & $10^6$ & 0.2 & Box in a $90^\circ$ groove tilted $30^\circ$ & $a = g(\sin\theta - \sqrt2\mu\cos\theta)$; final velocity \\
+\scn{bowl} & A & $10^8$ & 0.5 & Ball released 0.4\,rad up a spherical bowl, $R - r = 0.2$\,m & Rolling pendulum, exact period, constant amplitude; period, amplitude \\
+\scn{trough} & A & $10^7$ & 0.5 & Cylinder in a cylindrical trough, same & As \scn{bowl} \\
+\scn{twoblocks} & A & $10^6$ & 0.2, 0.6 & Block on a block on $30^\circ$ & Common $a$, no relative slip; velocity, slip \\
+\scn{sphere} & A & $10^8$ & 0.5 & Sphere rolling down $20^\circ$ from rest & $a = \tfrac57 g\sin\theta$ at zero speed; slip \\
+\scn{journal} & A & $10^7$ & 0.2 & Shaft spinning in a hole with 10\,mm clearance & Line contact at $\arctan\mu$: $\tau = \mu m g r/\sqrt{1+\mu^2}$; stop time, angle \\
+\midrule
+\scn{disk} & B & $10^6$ & 0.6 & Disk spinning flat & Uniform pressure, $\tau = \tfrac23\mu m g R$; stop time. Band 0.85--1.33 \\
+\scn{contensou} & B & $10^7$ & 0.3 & Disk sliding and spinning & Coulomb disk under uniform pressure (quadrature); stop time. Band 0.95--1.12 \\
+\scn{ring} & B & $10^6$ & 0.6 & Annulus spinning flat & Uniform pressure; stop time. Band 1--1.02 \\
+\scn{bearing} & B & $10^6$ & 0.2 & Shaft spinning in a hole of its own radius & Cosine pressure, $\tau = \tfrac4\pi\mu m g r/\sqrt{1+\mu^2}$; stop time. Band 0.81--1.27 \\
+\scn{cone} & B & $10^6$ & 0.3 & Frustum spinning in a conical seat & Uniform pressure; stop time. Band 1--1.04 \\
+\midrule
+\scn{tip} & C & $10^7$ & 0.8 & Tall box, gravity tilted slowly & Tipping angle on a Winkler foundation ($16.2^\circ$; rigid $18.4^\circ$); angle, slide \\
+\scn{drop} & C & $10^6$ & 0.5 & Box (10\,kg) dropped flat from 20\,mm & $m\ddot\delta = mg - KA\delta(1 + h\dot\delta)$; rebound velocity \\
+\scn{hole} & C & $10^8$ & 0.5 & Cube entering a square hole with 0.2\,mm interference & Stops where friction $4\mu K\delta a z$ balances; depth, residual speed \\
+\scn{corner} & C & $10^7$ & 0 & Cube pressed into a corner by tilted gravity & Penetrations $m g|d_i|/(K a^2)$; residual speed \\
+\scn{offset} & C & $10^6$ & 0.5 & Plate (10\,kg) with eccentric centre of mass & Tilt $m g e/(K I_A - m g z_c)$; residual speed \\
+\scn{stack} & C & $10^6$ & 0.5 & Three cubes, gravity tilted to $5^\circ$ & Compressions $n\,m g\cos\theta/(K a^2)$; creep, residual speed \\
+\botrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{Second set, written before any law was run on it (the laws were changed after its first run, Section~\ref{sec:benchmark})}
+\label{tab:scenarios-heldout}
+\footnotesize
+\begin{tabular}{@{}p{0.12\linewidth}p{0.03\linewidth}p{0.07\linewidth}p{0.06\linewidth}p{0.27\linewidth}p{0.29\linewidth}@{}}
+\toprule
+Scenario & Cl. & $K$ & $\mu$ & Set-up & Reference and error terms \\
+\midrule
+\scn{pieces}\-\scn{1}, \scn{2}, \scn{8}, \scn{64} & A & $10^6$ & 0.3 & A sliding box and a sliding, spinning box on a table and on the same table cut into 1, 2, 8, 64 pieces & Coulomb sliding: travel, stop time, no drift or rotation; same final poses on the cut and the whole table \\
+\scn{wedge} & A & $10^6$ & 0.40, 0.33 & Two blocks, gravity tilted to $20^\circ$ & One holds, one slides from $\tan\theta = \mu$; creep, residual speed, sliding velocity \\
+\scn{restitution} & C & $10^7$ & 0.5 & Spheres hitting at 0.5, 1, 2, 4\,m/s; $h = 0.5$ & The law's impact equation with the cap volume; rebounds; energy must not rise (class A) \\
+\scn{oblique} & A & $10^7$ & 0.2 & Spheres hitting obliquely, sliding and sticking; $h = 0.5$ & Rigid impulse theory with the run's own normal impulse; velocities, spins \\
+\scn{edge} & A & $10^7$ & 0 & Box sliding off the edge of a table & Rigid pitching about the edge; times to 0.1 and 0.25\,rad \\
+\scn{turntable} & A & $10^7$, $10^8$ & $10^{-5}$, 0.5 & Ball rolling on a free 100\,kg turntable & Circular orbit at $0.288\,\Omega$ (with recoil), constant radius \\
+\scn{energy} & A & $10^8$ & 0 & Ball sliding in a bowl; $h = 0$ & Point-mass pendulum; period, energy drift \\
+\scn{tower} & A & $10^6$ & 0.5 & Ten blocks, gravity tilted to $5^\circ$, 10\,s & Nothing moves; creep, residual speed \\
+\scn{massratio} & A & $10^8$ & 0.5 & 1\,kg block under a 1000\,kg block & Nothing moves; creep, residual speed \\
+\botrule
+\end{tabular}
+\end{table}

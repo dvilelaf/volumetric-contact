@@ -1,0 +1,121 @@
+\section{Derivation of the polar moments}\label{app:polar}
+
+This appendix gives the closed form of the polar moments of Eq.~\eqref{eq:moments} and the
+steps that lead to it.
+
+\paragraph{Result.} The triangle is the signed sum of the three triangles
+$(\q, \vect{a}, \vect{b})$ formed by $\q$ and each directed edge $\vect{a}\to\vect{b}$, positive
+when the edge runs counter-clockwise about $\m$ as seen from $\q$ (Fig.~\ref{fig:slip}). For one
+edge, let $\eta$ be the distance from $\q$ to the line of the edge, $\vect{e}_1$ the unit vector
+from $\q$ to that line and $\vect{e}_2 = \m\times\vect{e}_1$. In polar coordinates
+$(r, \theta)$ about $\q$, with $\rr = r(\cos\theta\,\vect{e}_1 + \sin\theta\,\vect{e}_2)$, the
+edge is the line $r = \eta\sec\theta$ and the sub-triangle is $0\le r\le \eta\sec\theta$,
+$\theta_a\le\theta\le\theta_b$, with $\tan\theta_a = (\vect{a}-\q)\cdot\vect{e}_2/\eta$ and the
+same for $\vect{b}$. The radial integrals are elementary and leave four integrals in $\theta$,
+whose primitives in $t = \tan\theta$ are
+\begin{equation}
+\begin{aligned}
+  I_1 &= \int\sec\theta\,\dd\theta = \operatorname{asinh} t, &
+  I_2 &= \int\sec\theta\tan\theta\,\dd\theta = \sqrt{1+t^2},\\
+  I_3 &= \int\sec^3\theta\,\dd\theta = \tfrac12\left(t\sqrt{1+t^2} + \operatorname{asinh} t\right), &
+  I_4 &= \int\sec^3\theta\tan\theta\,\dd\theta = \tfrac13\,(1+t^2)^{3/2} .
+\end{aligned}
+\label{eq:primitives}
+\end{equation}
+With $\Delta I_k = I_k(t_b) - I_k(t_a)$, the contribution of the edge is
+\begin{equation}
+\begin{aligned}
+  D &= \tfrac{\eta^3}{3}\,\Delta I_3, \qquad
+  \vect{R} = \tfrac{\eta^4}{4}\left(\Delta I_3\,\vect{e}_1 + \Delta I_4\,\vect{e}_2\right), \qquad
+  \vect{U} = \tfrac{\eta^2}{2}\left(\Delta I_1\,\vect{e}_1 + \Delta I_2\,\vect{e}_2\right),\\
+  \tens{W} &= \tfrac{\eta^3}{3}\left(\Delta I_1\,\vect{e}_1\vect{e}_1^{\mathsf T}
+     + \Delta I_2\left(\vect{e}_1\vect{e}_2^{\mathsf T} + \vect{e}_2\vect{e}_1^{\mathsf T}\right)
+     + (\Delta I_3 - \Delta I_1)\,\vect{e}_2\vect{e}_2^{\mathsf T}\right).
+\end{aligned}
+\label{eq:edge}
+\end{equation}
+The sign of each contribution comes out of the order of $t_a$ and $t_b$. An edge whose line
+passes through $\q$ contributes nothing: all the terms vanish with $\eta$. The integrands of
+$\vect{U}$ and $\tens{W}$ are bounded, so $\q$ inside the triangle, on an edge or at a vertex is
+not a singular case.
+
+\paragraph{Slip field.} Let $T$ be a triangle with unit normal $\m$ and $\x_0$ one of its
+points. The velocity of $A$ relative to $B$ at a point $\x$ of the plane of $T$ is
+$\vv(\x) = \vv(\x_0) + \w\times(\x - \x_0)$. Split $\w = \omega_m\m + \w_\parallel$, with
+$\w_\parallel$ in the plane. Since $\x - \x_0$ lies in the plane,
+$\w_\parallel\times(\x-\x_0)$ is along $\m$, and the projection on the plane is
+$\vv_t(\x) = \vv_{t0} + \omega_m\,\m\times(\x - \x_0)$. For $\omega_m \ne 0$ the point $\q$ with
+$\vv_t(\q) = \vect{0}$ satisfies $\m\times(\q - \x_0) = -\vv_{t0}/\omega_m$; applying
+$\m\times$ to both sides and using $\m\times(\m\times\vect{y}) = -\vect{y}$ for $\vect{y}$ in the
+plane gives $\q = \x_0 + \m\times\vv_{t0}/\omega_m$, and then
+$\vv_t(\x) = \omega_m\,\m\times(\x - \q)$.
+
+\paragraph{Wrench.} The friction traction on $A$ is
+$\vect{t} = -\mu\,p\,\vv_t/|\vv_t| = -\mu\,\sigma\,p\;\m\times\rr/|\rr|$. With
+$p = p_q + \nabla p\cdot\rr$,
+\[
+  \int_T \vect{t}\,\dd A
+  = -\mu\,\sigma\,\m\times\left(p_q\int_T\frac{\rr}{|\rr|}\,\dd A
+     + \int_T\frac{\rr\,\rr^{\mathsf T}}{|\rr|}\,\dd A\;\nabla p\right),
+\]
+and, since $\rr\times(\m\times\rr) = \m\,|\rr|^2 - \rr\,(\rr\cdot\m) = \m\,|\rr|^2$,
+\[
+  \int_T \rr\times\vect{t}\,\dd A
+  = -\mu\,\sigma\,\m\left(p_q\int_T|\rr|\,\dd A + \nabla p\cdot\int_T\rr\,|\rr|\,\dd A\right).
+\]
+The gradient of the linear pressure with vertex values $p_k$ at the vertices $\x_k$ of a
+triangle of area $A_T$, numbered counter-clockwise about $\m$, is
+$\nabla p = \bigl(p_0\,\m\times(\x_2-\x_1) + p_1\,\m\times(\x_0-\x_2)
++ p_2\,\m\times(\x_1-\x_0)\bigr)/(2A_T)$.
+
+\paragraph{Decomposition.} For any integrable $\phi$ and any point $\q$ of the plane,
+$\int_T\phi\,\dd A = \sum_e \varsigma_e\int_{T_e}\phi\,\dd A$, where $T_e$ is the triangle formed
+by $\q$ and the edge $e$, and $\varsigma_e = \pm1$ is the orientation of $(\q, \vect{a}_e,
+\vect{b}_e)$ about $\m$ when the edges are traversed counter-clockwise. In the polar coordinates
+of Section~\ref{sec:friction}, with the angle increasing counter-clockwise about $\m$, the edge
+$\vect{a}\to\vect{b}$ runs from $\theta_a$ to $\theta_b$, and $\theta_b > \theta_a$ exactly when
+$\varsigma_e = +1$; the signed integral is therefore
+$\int_{\theta_a}^{\theta_b}\int_0^{\eta\sec\theta}\phi\; r\,\dd r\,\dd\theta$ with the limits in
+that order.
+
+\paragraph{Radial integrals.} With $\rr = r\,\hat{\rr}(\theta)$,
+$\hat{\rr} = \cos\theta\,\vect{e}_1 + \sin\theta\,\vect{e}_2$:
+\begin{align*}
+  D &= \int\!\!\int_0^{\eta\sec\theta} r\cdot r\,\dd r\,\dd\theta
+     = \frac{\eta^3}{3}\int\sec^3\theta\,\dd\theta ,\\
+  \vect{R} &= \int\!\!\int_0^{\eta\sec\theta} r^2\,\hat{\rr}\; r\,\dd r\,\dd\theta
+     = \frac{\eta^4}{4}\int\sec^4\theta\,(\cos\theta\,\vect{e}_1 + \sin\theta\,\vect{e}_2)\,\dd\theta\\
+    &= \frac{\eta^4}{4}\left(\vect{e}_1\!\int\sec^3\theta\,\dd\theta
+        + \vect{e}_2\!\int\sec^3\theta\tan\theta\,\dd\theta\right),\\
+  \vect{U} &= \int\!\!\int_0^{\eta\sec\theta} \hat{\rr}\; r\,\dd r\,\dd\theta
+     = \frac{\eta^2}{2}\left(\vect{e}_1\!\int\sec\theta\,\dd\theta
+        + \vect{e}_2\!\int\sec\theta\tan\theta\,\dd\theta\right),\\
+  \tens{W} &= \int\!\!\int_0^{\eta\sec\theta} r\,\hat{\rr}\hat{\rr}^{\mathsf T}\; r\,\dd r\,\dd\theta
+     = \frac{\eta^3}{3}\int\sec^3\theta\;\hat{\rr}\hat{\rr}^{\mathsf T}\,\dd\theta .
+\end{align*}
+In the last one, $\sec^3\theta\cos^2\theta = \sec\theta$,
+$\sec^3\theta\cos\theta\sin\theta = \sec\theta\tan\theta$ and
+$\sec^3\theta\sin^2\theta = \sec^3\theta - \sec\theta$, which gives the three terms of
+Eq.~\eqref{eq:edge}.
+
+\paragraph{Primitives.} With $t = \tan\theta$ and $\sec\theta = \sqrt{1+t^2}$ on
+$(-\pi/2, \pi/2)$: $\int\sec\theta\,\dd\theta = \ln(\sec\theta + \tan\theta) =
+\operatorname{asinh} t$; $\int\sec\theta\tan\theta\,\dd\theta = \sec\theta$;
+$\int\sec^3\theta\,\dd\theta = \tfrac12(\sec\theta\tan\theta + \operatorname{asinh} t)$, by parts;
+and $\int\sec^3\theta\tan\theta\,\dd\theta = \tfrac13\sec^3\theta$. The whole edge lies on one
+side of $\q$ along $\vect{e}_1$, so $\theta$ stays in $(-\pi/2, \pi/2)$ and the primitives are
+evaluated directly at $t_a$ and $t_b$.
+
+\paragraph{Degenerate cases.} If $\q$ lies on the line of an edge, $\eta = 0$ and $T_e$ has no
+area; the terms of Eq.~\eqref{eq:edge} tend to zero with $\eta$, since $|t|\sim 1/\eta$ gives
+$\eta^3\Delta I_3\sim \eta$, $\eta^4\Delta I_4\sim \eta$, $\eta^2\Delta I_2\sim \eta$ and
+$\eta^2\Delta I_1\sim \eta^2\ln(1/\eta)$, and the edge is skipped. A far centre is treated in
+Section~S1.9 of the supplementary material.
+
+\paragraph{Check for a disk.} For a regular polygon of $n$ sides, apothem $a_p$ and uniform
+pressure $p$ spinning about its centre, every edge has $\eta = a_p$ and
+$t_b = -t_a = \tan(\pi/n)$, so
+$D = n\,\tfrac{a_p^3}{3}\bigl(\tan\tfrac{\pi}{n}\sec\tfrac{\pi}{n}
++ \operatorname{asinh}\tan\tfrac{\pi}{n}\bigr)$, which tends to $\tfrac{2\pi}{3}R^3$ as
+$n\to\infty$: the torque $\mu\,p\,D$ tends to $\tfrac23\mu N R$ with $N = \pi R^2 p$, the
+classical result for a disk under uniform pressure.

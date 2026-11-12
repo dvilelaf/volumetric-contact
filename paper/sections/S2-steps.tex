@@ -1,0 +1,97 @@
+\section{Stability of the explicit step and step bounds}\label{sup:steps}
+
+% The paper cites these subsections by number (S2.1 to S2.4): keep their order.
+
+\subsection{Coupling with the engines}
+
+The contact model knows nothing of the engine: bodies are indices, and the friction state is
+passed in and out so that each engine can keep it where its stepping scheme requires. The
+backends are thin: each one builds the engine's model of a scenario, and at every step reads the
+state, evaluates the contact model, applies the wrenches as external forces and advances. The
+friction state advances once per step, from the same evaluation. The contact models of the
+engines themselves are switched off for the methods of the library.
+\begin{itemize}
+\item \emph{Drake} (version 1.58). The bodies are free bodies of a discrete
+  \code{MultibodyPlant} without contact geometry. A system connected to the plant outputs the
+  wrenches as externally applied spatial forces and holds the friction state as discrete state
+  with the period of the plant, and serves to the plant the evaluation made at the start of the
+  step, so that the forces act on the state they were computed from.
+\item \emph{Project Chrono} (version 10.0). The wrenches are accumulated on the bodies at their
+  centres of mass before each step of the linearized implicit Euler time stepper, for which an
+  external load is a constant.
+\item \emph{MuJoCo} (version 4.0). Bodies have free joints; the wrenches are written as applied
+  Cartesian forces and the step is taken with the \code{implicitfast} integrator, whose implicit
+  terms do not include applied forces.
+\end{itemize}
+Each backend also passes its step and the inverse inertias of the bodies to the contact model,
+which is what the bounds of Section~\ref{sup:bounds} need; the engines store the state of a
+pair as 26 numbers. For a free body under an applied force the three steppers are the same
+first-order scheme, the semi-implicit Euler step: the velocity is advanced with the force of
+the start of the step and the position with the new velocity. They differ in how they integrate
+rotation and gyroscopic terms.
+
+\subsection{Stability condition}
+
+The step is $\vv^+ = \vv + \dt\,M^{-1}\vect{f}(\x,\vv)$, $\x^+ = \x + \dt\,\vv^+$. For a spring
+$k$ and a damper $c$ acting on an inverse mass $w$, with $\alpha = k\,w\,\dt^2$ and
+$\beta = c\,w\,\dt$, one step maps $(x, \dt\,v)$ with the matrix
+$\bigl(\begin{smallmatrix} 1-\alpha & 1-\beta\\ -\alpha & 1-\beta\end{smallmatrix}\bigr)$, whose characteristic
+polynomial is $\lambda^2 - (2-\alpha-\beta)\lambda + (1-\beta)$. By the Jury conditions the scheme is stable
+if and only if $0 < \alpha$, $\beta < 2$ and $\alpha + 2\beta < 4$ (at $\alpha = 0$ it is only marginally stable), that is,
+\begin{equation}
+  k\,w\,\dt^2 + 2\,c\,w\,\dt < 4 \quad\text{and}\quad c\,w\,\dt < 2 .
+  \label{eq:sup-stability}
+\end{equation}
+When several contacts act on a body their contributions add. Four mechanisms of the laws enter
+this condition, and three of them are proportional to the load: the stick spring and damper;
+the normal damper, $c = h\,K V$; and the sliding friction across the stick--slip transition,
+which is a damper of up to $0.86\,\mu\Fn/v_s$. For a body of mass $m$ under a contact load of
+$N$ times its weight, with $h = 5$\,s/m, $\mu = 0.5$ and $\dt = 1$\,ms, the stick has
+$\alpha + 2\beta = 0.54\,N$, so the default bristle is stable up to a load of about seven times
+the weight; the normal damper has $\beta = 0.049\,N$ and the transition $\beta = 0.17\,N$. A
+body under its own weight is far from all three limits. A block at the bottom of a tall stack,
+or a light body under a heavy one, is not.
+
+The fourth mechanism is the normal stiffness, which is the model's and is not touched, since
+changing it would change the statics. For a flat contact of area $A_c$ between a body of mass
+$m$ and the ground it needs $K A_c\,\dt^2/m < 4$; for a body held between two such contacts the
+two stiffnesses add, $\sum w = 2/m$, and with the dampers at their bounds the condition
+$K A_c\,\dt^2\sum w < 2$ gives $\dt < \sqrt{m/(K A_c)}$. The stiffnesses of the battery were
+chosen so that the base step of 1\,ms satisfies it, with the two exceptions that are there to
+show the limit.
+
+\subsection{Bounds on the terms proportional to the load}\label{sup:bounds}
+
+Let $\Lambda = \sum|\Fn|\,w$ be the \emph{load acceleration} of a body, the sum over its
+contacts of the normal force times the inverse mass that the contact sees. With $\Lambda$ the
+sum of the load accelerations of the two bodies of a pair, each pair applies
+\begin{equation}
+  k \le \frac{|\Fn|}{\Lambda\,\dt^2}, \qquad c \le \frac{|\Fn|}{\Lambda\,\dt}, \qquad
+  h \le \frac{1}{\Lambda\,\dt}, \qquad v_s \ge \mu\,\Lambda\,\dt ,
+  \label{eq:bounds}
+\end{equation}
+and the torsional bristle the same with the inverse inertia about the normal, so that each
+mechanism satisfies $\sum k\,w\,\dt^2\le1$ and $\sum c\,w\,\dt\le1$ over the contacts of a body,
+which keeps Eq.~\eqref{eq:sup-stability} with margin when two mechanisms act on one body. In
+words: a stick spring cannot bring the pair back in less than a step, a damper cannot take more
+than the relative velocity of a step, and the stick--slip transition cannot be narrower than
+the change of velocity that friction causes in a step. The load acceleration counts the lever
+arm of each contact and, for the normal damper, the rocking that the damping of the foundation
+resists; it is at least the pair's own. $\Lambda$ is taken from the previous evaluation and
+kept in the state of the pair. The bounds are per unit of load, so they do not depend on how a
+contact is cut into pieces, and there is no sub-stepping. The baselines of the library are
+subject to the same bounds.
+
+\subsection{What the bounds change}
+
+Below the threshold of Eq.~\eqref{eq:bounds} nothing changes: a body under its own weight at
+1\,ms receives the same wrench to the last bit with and without the bounds, which a test of the
+library asserts. Above it, the parameters that the user gave are no longer the ones applied: the
+pre-sliding displacement grows from $d$ to $\mu\Lambda\,\dt^2$, the stick--slip transition widens
+to $\mu\Lambda\,\dt$, and the damping factor falls below $h$, all as functions of the step and of
+the load; the dampers that a light body carries are bounded by its mass over the step, so a
+heavy body resting on a light one is damped less than the model prescribes. What is benchmarked
+there is the law regularized by the step, and its results converge to the model's only as the
+step is reduced. The battery did not record in which runs the bounds were active; from the
+loads, they are in \scn{tower}, \scn{massratio} and \scn{stack} at the base step and are not in
+the scenarios with one body under its own weight.

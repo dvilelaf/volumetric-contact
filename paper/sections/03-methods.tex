@@ -1,0 +1,310 @@
+\section{The two laws on exact mesh intersections}\label{sec:methods}
+
+% Describes core/src/gonthier.cpp, core/src/distributed.cpp and core/src/pcm.cpp at the commit of
+% the battery. The constructions that this section only names are in Sections S1 and S2 of the
+% supplement; if the laws change, change both.
+
+Both laws are the Winkler foundation applied to the overlap $\region = A\cap B$ of two
+undeformed bodies given by closed triangle meshes. The overlap is read as a bundle of columns
+along a normal $\n$; a column of length $\ell$ stands for a spring compressed by $\ell$ and
+presses with $K\ell$ per unit of area, with $K$ in N/m$^3$. A rate term of Hunt--Crossley form
+multiplies the pressure by $1 - h\,v_n$, with $v_n = \n\cdot\vv$ the rate at which the bodies
+separate and $h$ [s/m] the damping factor, and friction is Coulomb's, with coefficient $\mu$.
+For a flat contact the normal force is $K V(1 - h\,v_n)$, with $V$ the volume of the overlap.
+The parameters $K$, $h$ and $\mu$ belong to the pair of bodies. The laws differ in what they do
+with the foundation: Gonthier's law lumps it into one force at the centroid of the overlap and
+torques from its inertia tensor; the distributed law integrates it over the faces of the
+overlap, so that the centre of pressure and the friction torque follow from the distribution.
+Table~\ref{tab:notation} lists the notation; $\vv(\x)$ and $\w$ are the velocity field and the
+angular velocity of $A$ relative to $B$.
+
+\begin{table}[t]
+\caption{Notation. Vectors are bold}\label{tab:notation}
+\footnotesize
+\begin{tabular}{@{}lp{0.36\linewidth}lp{0.36\linewidth}@{}}
+\toprule
+Symbol & Meaning & Symbol & Meaning \\
+\midrule
+$\region$, $\partial\region$ & overlap $A\cap B$; its boundary &
+$K$, $h$ & stiffness [N/m$^3$] and damping factor [s/m] of the foundation \\
+$\partial\region_A$, $\partial\region_B$ & parts of $\partial\region$ on the surface of $A$ and of $B$ &
+$\mu$, $\mu_s$ & kinetic and static coefficients of friction \\
+$V$, $\vect{c}$, $\tens{J}$ & volume, centroid and inertia tensor (unit density, about $\vect{c}$) of $\region$ &
+$\ell(\x)$, $\varphi(\x)$ & column length along $\n$; damping factor $1 - h\,\n\cdot\vv(\x)$ \\
+$\n$, $\m$ & pair normal (pushes $A$ out of $B$); unit normal of a face &
+$p$, $\Fn$ & pressure; normal force \\
+$v_n$, $\vv_t$ & $\n\cdot\vv$ (positive when separating); tangential part of $\vv$ &
+$\q$, $\rr$ & instantaneous centre of the slip in the plane of a triangle; $\x - \q$ \\
+$\omega_n$, $\w_t$ & $\n\cdot\w$; tangential part of $\w$ &
+$D$, $\vect{R}$, $\vect{U}$, $\tens{W}$ & polar moments of a triangle about $\q$ \\
+$r_g$ & radius of gyration of $\region$ about $\n$ &
+$d$, $\tau$, $v_s$ & pre-sliding displacement, stick time constant, stick--slip velocity \\
+$A_c$, $A_T$ & area of a flat contact; of a triangle &
+$\dt$, $w$ & time step; inverse mass seen by a contact \\
+\botrule
+\end{tabular}
+\end{table}
+
+\subsection{The overlap and its normal}\label{sec:geometry}
+
+The boundary of the overlap is the part of the surface of $A$ inside $B$ and the part of the
+surface of $B$ inside $A$, $\partial\region = \partial\region_A\cup\partial\region_B$. Each is
+obtained by clipping the triangles of one mesh against a binary space partition of the other
+\cite{Sutherland1974,Thibault1987}, after bounding-volume trees \cite{vandenBergen1997} have
+selected the faces involved, as in the 2018 thesis \cite{Vilela2018}. Every clipped polygon
+adds its term to the integrals of the monomials up to second degree over $\region$, which the
+divergence theorem reduces to sums over the boundary \cite{Mirtich1996,Eberly2002}. The result
+is the volume $V$, the centroid $\vect{c}$ and the inertia tensor $\tens{J}$ of the overlap,
+exact for the polyhedra given up to round-off: there is no sampling and no resolution
+parameter. The pair normal is the direction of the vector area of the part of the boundary that
+belongs to $B$,
+\begin{equation}
+  \vect{S}_B = \int_{\partial\region_B} \m \,\dd A , \qquad \n = \frac{\vect{S}_B}{|\vect{S}_B|} ,
+  \label{eq:normal}
+\end{equation}
+which depends only on the curve where the two surfaces meet: when that contour is planar, $\n$
+is the normal of its plane. The choice is not new: according to Elandt et
+al.~\cite{Elandt2019}, Hasegawa and Fujii \cite{Hasegawa2003} and Luo and Nahon \cite{Luo2006}
+define the direction of the patch in the same way.
+
+Both laws use one normal per contact region, and the distributed law requires convex shapes, so
+a non-convex body is given as convex pieces that fill it exactly, without overlaps or gaps, and
+one pair is evaluated for every piece of one body near a piece of the other. Cutting a body
+creates internal faces (seams) that close the overlap of a piece but are not surface of the
+body; they are tagged when the body is built and carry no pressure, end no column and do not
+enter the normal of the distributed law, which makes its result independent of the cut
+(Section~S1.4). An approximate convex decomposition of a general mesh \cite{Wei2022coacd} is
+not covered. Where $\vect{S}_B$ cancels, as for a body enclosed in another, the pair keeps its
+last normal (Section~S1.5). Coincident faces, the acceleration structures and the cost of a
+pair are in Sections~S1.1, S1.2 and~S1.14.
+
+\subsection{Gonthier's volumetric law}\label{sec:gonthier}
+
+The law \law{gonthier} implements the volumetric model of Gonthier's thesis
+\cite{Gonthier2007thesis} on the exact $V$, $\vect{c}$ and $\tens{J}$. The normal force acts
+along $\n$ at the centroid, with a rolling-resistance torque that is the moment of the damped
+pressure to first order in the depth of the overlap:
+\begin{equation}
+  \Fn = K V \left(1 - h\,v_n(\vect{c})\right), \qquad
+  \vect{M}_r = -K h\, \tens{J}\, \w_t ,
+  \label{eq:gonthier-normal}
+\end{equation}
+with $\Fn$ clamped at zero. For the friction the thesis defines the radius of gyration of the
+overlap about the normal, $r_g^2 = \n\cdot\tens{J}\,\n/V$, and an average surface velocity,
+$v_\mathrm{avg}^2 = |\vv_t|^2 + r_g^2\,\omega_n^2$ with $\vv_t$ taken at the centroid, and gives
+a Coulomb force and a Coulomb spinning torque that share one friction budget (the Contensou
+effect):
+\begin{equation}
+  \vect{f}_t = -\mu\,\Fn\,\frac{\vv_t}{v_\mathrm{avg}}, \qquad
+  \vect{M}_s = -\mu\,\Fn\, r_g^2\,\frac{\omega_n}{v_\mathrm{avg}}\,\n .
+  \label{eq:gonthier-friction}
+\end{equation}
+Pure sliding gives $\mu\Fn$ and no torque, pure spinning the torque $\mu\Fn r_g$ and no force,
+and the spin needs no parameter of its own. The lumping has a known price: for a flat circular
+patch of radius $R$ and uniform depth, $r_g = R/\sqrt{2}$, whereas the exact Coulomb integral
+of a uniform pressure gives the arm $2R/3$, so the spinning torque of the model is
+$3/(2\sqrt{2}) = 1.06$ times the exact one. This 6\,\% belongs to the published model and not
+to its implementation. The stick--slip of the thesis and the four points in which the
+implementation departs from it, none of which changes the sliding or the spinning law, are in
+Section~S1.10. The variant \law{gonthier-thesis} keeps the friction of the second author's 2018
+thesis \cite{Vilela2018} (a sliding force that ignores the spin, a viscous spinning torque and
+a bristle anchored at the centroid of the overlap, which is not a material point) so that both
+can be reported.
+
+\subsection{The distributed law}\label{sec:distributed}
+
+The law \law{distributed} evaluates the same foundation point by point on the contact surface,
+which is $\partial\region$ without the seams. Through a point $\x$ of a face of $A$ the column
+runs along $+\n$, into $A$ and out of $B$; through a point of a face of $B$ it runs along $-\n$
+(Fig.~\ref{fig:columns}); it ends at the first face of the surface of either body, so its
+length $\ell(\x)$ is the minimum of a few affine functions of $\x$. The pressure is
+\begin{equation}
+  p(\x) = \gamma\,K\,\ell(\x)\,\varphi(\x), \qquad \varphi(\x) = 1 - h\,\n\cdot\vv(\x) ,
+  \label{eq:pressure}
+\end{equation}
+where $\gamma = \tfrac12$ when the two ends of the column lie on different bodies, so that each
+end carries half and the law is symmetric in $A$ and $B$ ($\gamma = 1$ in an enclosure,
+Section~S1.6). The pressure acts along the normal of the face it is on. The rate in $\varphi$
+is measured along the pair normal because $\n\cdot\vv$ is the same all along a column and is
+the rate at which the column shortens; sliding along the tangent plane of $\n$ and spinning
+about $\n$ therefore damp nothing, on any face (Section~S1.7).
+
+\begin{figure}[t]
+\centering
+\input{figures/columns}
+\caption{Section of the overlap $\region$ of a body $A$ pressed into a body $B$. The pair
+normal $\n$ is the direction of the vector area of $\partial\region_B$ (thick line). Columns run
+along $\n$ from the faces of $A$ and along $-\n$ from the faces of $B$; the length $\ell(\x)$ of a
+column is the distance to the first face of either body. Each end of a column carries half of
+$K\ell$, as a pressure along the normal of its own face}
+\label{fig:columns}
+\end{figure}
+
+Three constructions make the normal wrench exact for the polyhedra, with no quadrature error
+and no dependence on the triangulation; one triangle per flat face is enough. Each polygon of
+the contact surface is split into the convex regions where one face ends the column, on which
+$\ell$ is affine (Section~S1.6). Where the affine factor $\varphi$ changes sign the region is
+cut along $\varphi = 0$ and the tensile side carries no pressure, since there is no adhesion.
+On what remains the pressure is the product of two affine functions, whose force and moment
+over a triangle have a closed form; each triangle stores the linear pressure $\tilde p$ with
+the same force and moment (Section~S1.7), which is the exact pressure whenever $\ell$ or
+$\varphi$ is constant on it. Hasegawa and Sato \cite{Hasegawa2004} obtain the exactness of the
+elastic term in another way, with a depth that is linear on the triangles of the intersection
+polyhedron.
+
+For a flat contact the law reduces to Gonthier's normal wrench: since $\n\cdot\vv$ is constant
+along each column and affine in position,
+\begin{equation}
+  \int K\,\ell\,(1 - h\,\n\cdot\vv)\,\dd A
+  = K\!\int_{\region} (1 - h\,\n\cdot\vv)\,\dd V
+  = K V \left(1 - h\,\n\cdot\vv(\vect{c})\right),
+  \label{eq:reduction}
+\end{equation}
+and the first moment of the damped pressure is, up to a term of the order of the depth, the
+rolling resistance $\vect{M}_r$ of Eq.~\eqref{eq:gonthier-normal}: under a rolling body the
+leading half of the patch is loaded more than the trailing half. The rolling resistance is a
+property of the foundation with damping, not an addition to it, and the results have to account
+for it in the problems whose rigid-body theory has none (Section~\ref{sec:classA}).
+
+\subsection{Coulomb friction in closed form}\label{sec:friction}
+
+Every triangle of the contact surface carries a linear pressure $p$ and slips with the relative
+velocity field of the two bodies. The friction traction on $A$ is $-\mu\,p\,\vv_t/|\vv_t|$, with
+$\vv_t$ the projection of $\vv$ on the plane of the triangle, and its integral is not a
+polynomial: the direction of the slip changes over the triangle. It can nevertheless be done in
+closed form, because the slip field of a rigid motion in a plane is a rotation about a point.
+Let $\m$ be the unit normal of the triangle, $\x_0$ one of its vertices, $\omega_m = \w\cdot\m$
+and $\vv_{t0}$ the tangential velocity at $\x_0$. Then
+\begin{equation}
+  \vv_t(\x) = \omega_m\,\m\times\rr ,
+  \qquad \rr = \x - \q, \qquad \q = \x_0 + \frac{\m\times\vv_{t0}}{\omega_m} ,
+  \label{eq:centre}
+\end{equation}
+where $\q$ is the instantaneous centre of the slip in the plane of the triangle; it need not
+lie inside the triangle (Fig.~\ref{fig:slip}). Writing the pressure about the centre,
+$p(\x) = p_q + \nabla p\cdot\rr$, with $\sigma = \operatorname{sgn}\omega_m$, the friction force
+on $A$ and its moment about $\q$ are
+\begin{align}
+  \vect{F}_f &= -\mu\,\sigma\,\m\times\int p\,\frac{\rr}{|\rr|}\,\dd A
+     = -\mu\,\sigma\,\m\times\left(p_q\,\vect{U} + \tens{W}\,\nabla p\right), \label{eq:friction-force}\\
+  \vect{M}_f &= -\mu\,\sigma\int p\,\rr\times\frac{\m\times\rr}{|\rr|}\,\dd A
+     = -\mu\,\sigma\left(p_q\,D + \nabla p\cdot\vect{R}\right)\m , \label{eq:friction-moment}
+\end{align}
+with four \emph{polar moments} of the triangle $T$ about $\q$,
+\begin{equation}
+  D = \int_T |\rr|\,\dd A, \quad
+  \vect{R} = \int_T \rr\,|\rr|\,\dd A, \quad
+  \vect{U} = \int_T \frac{\rr}{|\rr|}\,\dd A, \quad
+  \tens{W} = \int_T \frac{\rr\,\rr^{\mathsf T}}{|\rr|}\,\dd A .
+  \label{eq:moments}
+\end{equation}
+$D$ and $\vect{U}$ are the moments that Jia \cite{Jia1997} gives for a polygon under uniform
+pressure; $\vect{R}$ and $\tens{W}$ are what the linear term of the pressure adds.
+
+\begin{figure}[t]
+\centering
+\input{figures/slip}
+\caption{Left: the slip field on a triangle is a rotation about the instantaneous centre $\q$,
+with speed $|\omega_m||\rr|$ perpendicular to $\rr$. Right: the triangle is the signed sum of
+the three triangles formed by $\q$ and each edge; on the triangle $(\q, \vect{a}, \vect{b})$,
+polar coordinates about $\q$ with the angle $\theta$ measured from the perpendicular $\vect{e}_1$
+to the edge give $r \le \eta\sec\theta$, with $\eta$ the distance from $\q$ to the line of the edge}
+\label{fig:slip}
+\end{figure}
+
+The moments are evaluated edge by edge: the triangle is the signed sum of the three triangles
+formed by $\q$ and each edge, and in polar coordinates about $\q$ each of them leaves four
+elementary integrals whose primitives are an inverse hyperbolic sine and powers of a square
+root. Appendix~\ref{app:polar} gives the result, Eq.~\eqref{eq:edge}, and its derivation. The
+sign of each contribution comes out of the order of the limits, so no case distinction is
+needed for $\q$ inside or outside the triangle, and $\q$ on an edge or at a vertex is not a
+singular case. The cost is two square roots and two inverse hyperbolic sines per edge. A
+script distributed with the sources re-implements the formulas as printed and compares them
+with quadrature that does not use them, for $\q$ outside, inside, on an edge and at a vertex;
+they agree to $10^{-14}$ where the integrand is analytic.
+% The number of this paragraph is the one paper/checks/check_polar_moments.py prints; it is not a battery result.
+
+The friction is exact for the linear pressure $\tilde p$ of each flat triangle, whatever the
+triangulation. It is approximate where $\tilde p$ is not the true pressure (both $\ell$ and
+$\varphi$ vary over a triangle), and a uniform-slip formula replaces it when the triangle does
+not rotate in its plane or the centre is far (Section~S1.9).
+
+\subsection{Stiction}\label{sec:stiction}
+
+Coulomb friction regularized by velocity alone lets a loaded body creep. Both laws therefore
+hold a contact at rest with a bristle: a spring--damper on a tangential deflection $\vect{z}$,
+blended with the sliding friction by a weight $s$,
+\begin{equation}
+\begin{gathered}
+  \vect{f} = s\,\vect{f}_\mathrm{stick} + (1-s)\,\vect{f}_\mathrm{slide},
+  \qquad \vect{f}_\mathrm{stick} = -k\,\vect{z} - c\,\vv_t, \\
+  s = \exp\!\left(-u^2/v_s^2\right),
+  \qquad k = \frac{\mu_s\,|\Fn|}{d}, \qquad c = k\,\tau ,
+\end{gathered}
+  \label{eq:stick}
+\end{equation}
+and the same for a torsional deflection about $\n$. The speed $u$ is Gonthier's
+$v_\mathrm{avg}$ in \law{gonthier} and its counterpart for the pressure distribution in
+\law{distributed}. The deflection is the slip of the material point of $A$ at the friction
+point, accumulated between evaluations, so that rolling without slipping loads no bristle. The
+stiffness is proportional to the load, as in the Dahl and LuGre models and in Gonthier's
+bristle \cite{Gonthier2007thesis}: every contact reaches its static limit after the same
+displacement $d = 0.1$\,mm, with $\tau = 5$\,ms and $v_s = 24.5$\,mm/s for every contact of
+every scenario. The stick force is capped at the static limit, which in \law{distributed} is
+the limit surface of the patch approximated by the ellipse of Howe and Cutkosky
+\cite{Howe1996}, with the spinning capacity of the pressure distribution from the polar moments
+of Eq.~\eqref{eq:friction-moment}, and in \law{gonthier}, as published, a box: force and torque
+are limited separately (Section~S1.11).
+
+\subsection{Explicit coupling with the engines and its step limit}\label{sec:coupling}
+
+The contact model is a function: it receives the poses and velocities of the bodies and the
+friction state of every pair and returns one wrench per body and the next state. The backends
+for Drake 1.58, Project Chrono 10.0 and MuJoCo 4.0 switch the engine's own contact off, apply
+the wrenches as external forces and advance (Section~S2.1). In the three the wrench is
+\emph{explicit}: computed from the state at the start of the step and held during it, so for
+contact the three steppers are the same semi-implicit Euler scheme. Running one law on three
+engines therefore checks the implementation on code bases that share nothing, and cannot
+separate the error of the law from that of the time discretization, which the step series does
+(Section~\ref{sec:convergence}).
+
+An explicit step has a stability limit. A spring $k$ and a damper $c$ acting on an inverse mass
+$w$ are stable if and only if $k\,w\,\dt^2 + 2\,c\,w\,\dt < 4$ and $c\,w\,\dt < 2$
+(Section~S2.2), and the contributions of the contacts of a body add. For the normal stiffness
+of a flat contact of area $A_c$ this is
+\begin{equation}
+  K A_c\,\dt^2 \sum w < 4 ,
+  \label{eq:stability}
+\end{equation}
+and $< 2$ with the dampers at their bounds: a body of mass $m$ held between two flat contacts,
+for which $\sum w = 2/m$, needs $\dt < \sqrt{m/(K A_c)}$. The laws do not change $K$, so
+Eq.~\eqref{eq:stability} is the limit of the coupling. The terms proportional to the load (the
+stick spring and damper, the normal damper, the slope of the friction across the stick--slip
+transition) would impose limits of their own under loads of several times a body's weight; the
+laws bound them per unit of load, which changes nothing below a load threshold and, above it,
+applies a softer stick, a wider transition and less damping than the parameters say, as
+functions of the step (Section~S2.3). An implicit coupling needs the derivatives of the wrench,
+which the laws do not provide yet.
+
+\subsection{Baselines from the literature on the same geometry}\label{sec:baselines}
+
+% Describes core/src/pcm.cpp and DistributedParams::friction_quadrature; formulations, sources
+% and departures in docs/baselines.md.
+
+Three further methods of the library, run like the two laws with the same $K$, $h$ and $\mu$,
+show what the closed-form friction buys and how the closest published law behaves. Two variants
+of \law{distributed} replace only the closed form by the quadratures of the literature: the
+\emph{vertex rule} of Hasegawa and Sato \cite{Hasegawa2004}, which evaluates the friction at
+the three vertices of each triangle and interpolates it linearly, and the \emph{one-point rule},
+which applies $-\mu\int p\,\dd A$ along the slip direction at the pressure centroid of each
+triangle, as the polygonal contact model, Simbody's elastic foundation and the discrete
+hydroelastic model do per element \cite{Hippmann2024,Sherman2011,Masterjohn2022}. When the slip
+direction is uniform over a triangle the three rules coincide, so they can differ only where a
+contact spins about the normal of its faces. The law \law{pcm} is a per-face elastic foundation
+after the polygonal contact model \cite{Hippmann2004,Hippmann2024} and Simbody
+\cite{Sherman2011,SimbodyEFF}: every triangle of the surface of one body inside the other is a
+spring with one sample of depth, velocity and slip, a normal force
+$\tfrac12 K A_T\,x\,(1 + h\,\dot x)$ for a penetration $x$, and a regularized Coulomb friction
+without stiction or state, as in its sources. Its elements are the triangles of the exact
+contact surface and its depth is measured to the nearest point of the other surface; these and
+its other departures from the publications are in Section~S1.13.
