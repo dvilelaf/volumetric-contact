@@ -1,0 +1,99 @@
+% An independent finite-element reference for two class B scenarios (disk, bearing).
+% Input by sections/05-results.tex after the class B results. The solver, the cases and the
+% numbers of Table~\ref{tab:fem} come from tools/fem (uv run tools/fem/run.py; results/fem/).
+% The abstract, Section 7 and Section 8 repeat the 18 % of disk; change them with this file.
+\subsection{A finite-element reference for two class B scenarios}\label{sec:fem}
+
+The class B references assume a pressure distribution, and the band lists the alternatives. To
+place a continuum in that band we solved, by finite elements, the static frictionless contact of
+a linear-elastic support with a rigid body (small strain, quadratic quadrilaterals, unilateral
+contact solved exactly by an active set; \code{tools/fem}). For \scn{disk}, an axisymmetric layer
+of thickness $H$ bonded to a rigid base under a rigid flat punch of radius $R$; the torque of
+sliding everywhere is $f\mu NR$ with $f=\int p\,r\,\dd A/(NR)$. The friction of a spin is
+circumferential and, in linear elasticity, uncoupled from the normal problem, so the frictionless
+pressure is exact for the spinning punch. For \scn{bearing}, a plane-strain sleeve of wall $t$
+bonded to a rigid housing around a rigid journal without clearance, with $E$ such that
+$E(1-\nu)/((1+\nu)(1-2\nu)t)$ is the battery's $K$; the torque with the friction circle is
+$f\mu Nr/\sqrt{1+\mu^2}$ with $f=\int p\,\dd s/|\int p\,\n\,\dd s|$. There the friction couples
+with the normal problem, and the frictionless pressure is its $\mu\to0$ limit. The solver
+reproduces the flat punch on a deep layer ($f=\pi/4$ within 0.2\,\%), the Winkler limit of a thin
+compressible layer ($f=2/3$) and Hertz line contact (half-width within one node, pressure within
+1\,\% of its peak). Over three refinements the ratios of \scn{disk} converge with observed order
+2.2 to 2.8 and those of \scn{bearing} change by less than $10^{-4}$; every digit of
+Table~\ref{tab:fem} is converged; the pressures are plotted in Section~S4.4. The stop time follows from the scenario's own formula,
+$t=I\omega_0/\tau\propto1/f$.
+
+\emph{\scn{disk}.} A thin layer is a Winkler foundation: for $H/R\le0.2$ the pressure is nearly
+uniform and $f$ is within 3\,\% of the nominal $2/3$ (below it for $\nu=0.45$, towards the
+parabolic pressure of an incompressible thin layer). The shear between neighbouring fibres, which
+a Winkler foundation omits, moves the load to the rim as the layer thickens, and the battery's
+slab ($H/R=4$) is a half-space: $f$ is $\pi/4$ within 0.3\,\% for both $\nu$. A continuum support
+puts \scn{disk} at the rigid-punch end of its band, with a stop time 15\,\% shorter than the
+nominal one. No elastic-foundation method models that rim: \law{distributed} and Drake
+hydroelastic, which reproduce the uniform pressure of their own model, stop 18\,\% late against
+the FE reference, \law{pcm} 29\,\%; \law{gonthier} comes closest (11\,\%) because its lumped
+torque is 6\,\% high, an error of the lumping and not a model of the rim. The 18\,\% is therefore a
+limit of the Winkler foundation itself on a thick support, shared by its two independent
+integrations, and not an error of their discretization; a finer mesh or a smaller step would not
+reduce it.
+
+\emph{\scn{bearing}.} For $\nu=0.3$ the continuum sleeve gives the Winkler cosine ($f$ within
+0.2\,\% of $4/\pi$, contact over $\pm86^\circ$); a nearly incompressible wall ($\nu=0.45$)
+spreads the load beyond the lower half ($\pm94^\circ$) and lies between the cosine and the
+$\sqrt{\cos}$ distribution. The two ends of the band, line contact and uniform pressure, are
+excluded. Against the FE stop time \law{pcm} and Drake hydroelastic are within 0.7\,\% and
+\law{distributed} and \law{gonthier} within 2\,\% at $\nu=0.3$, and all four within 5\,\% at
+$\nu=0.45$: the reference does not separate them, since its own dependence on $\nu$ is as large as
+their differences, but it confirms that the nominal reference of \scn{bearing} is that of a
+continuum and that the large errors of the point-contact models are theirs.
+
+What the FE reference does not settle: it is static, small-strain and frictionless in the normal
+problem, and it assumes sliding everywhere; the runs are dynamic and damped. The support's
+$\nu$ is not given by the battery, and $E$ follows from $K$ through the thin-layer mapping, which
+fixes the sink (the continuum's differs from the Winkler sink by $-5$ to $+22\,\%$) but not $f$.
+The battery's ground is defined as a Winkler foundation, so agreement with the nominal reference
+remains the right test of whether a method integrates its own model; the FE reference measures
+how far that model is from a continuum. \scn{ring} and \scn{contensou}, flat faces on the same
+slab, should move towards the rim as \scn{disk} does; they and \scn{cone} were not computed. The
+signs in Table~\ref{tab:fem} come from the viewer's export of the committed battery, which
+\code{tools/fem/run.py} checks against \code{results/battery.csv}.
+
+% generated by tools/fem: typed from results/fem/fem_reference.csv (converged rows) and
+% results/fem/stop_times.csv (engine Drake for the methods of the library; Chrono and MuJoCo
+% differ by less than 0.1 %). Rerun tools/fem/run.py and retype if either file changes.
+\begin{table}[!tbp]
+\caption{Finite-element reference. Top: $f$ of a continuum support against the band (\scn{disk}:
+nominal $2/3$, half-space punch $\pi/4\approx0.785$, uniform wear $1/2$; \scn{bearing}: nominal
+$4/\pi\approx1.273$, line contact 1, $\sqrt{\cos}$ 1.371, uniform $\pi/2$). Bottom: deviation of
+the base-variant stop time [\%] from the nominal reference and from the FE one (\scn{disk}: the
+slab with $\nu=0.3$; $\nu=0.45$ moves it by at most 0.1 point)}
+\label{tab:fem}
+\centering\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\scn{disk}, $f$ & $H/R=0.05$ & $0.2$ & $1$ & $4$ (battery) \\
+\midrule
+$\nu=0.3$  & 0.671 & 0.685 & 0.750 & 0.784 \\
+$\nu=0.45$ & 0.654 & 0.659 & 0.741 & 0.783 \\
+\midrule
+\scn{bearing}, $f$ & small load & battery load & contact & $E$ [kPa] \\
+\midrule
+$\nu=0.3$  & 1.272 & 1.276 & $\pm86^\circ$ & 14.9 \\
+$\nu=0.45$ & 1.309 & 1.314 & $\pm94^\circ$ & 5.27 \\
+\bottomrule
+\end{tabular}
+
+\medskip
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{\scn{disk}} & \multicolumn{3}{c}{\scn{bearing}} \\
+\cmidrule(lr){2-3}\cmidrule(l){4-6}
+Method & nominal & FE & nominal & FE, $\nu=0.3$ & FE, $\nu=0.45$ \\
+\midrule
+\law{distributed}  & $+0.1$  & $+17.7$ & $+1.6$  & $+1.8$  & $+4.9$ \\
+\law{gonthier}     & $-5.6$  & $+11.0$ & $-1.8$  & $-1.6$  & $+1.4$ \\
+\law{pcm}          & $+10.0$ & $+29.3$ & $-0.2$  & $+0.0$  & $+3.1$ \\
+Drake hydroelastic & $+0.3$  & $+18.0$ & $+0.5$  & $+0.6$  & $+3.7$ \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,445 @@
+% Text of the short version (paper/short.tex). Every statement is one of the paper
+% (sections/01 to 09) and every number of a run is the same \result{} key; the predictions and
+% the finite-element numbers are typed as the paper types them (sections/05-results.tex,
+% sections/fem-reference.tex). It cites the paper and the supplement by section number
+% (Sections 5.4 and 7 of the paper, S1 to S8): change them if that numbering changes. If the
+% paper's findings change, change this file with them.
+
+\section{Introduction}\label{sh:introduction}
+
+Contact between the bodies of a multibody system is most often modelled at a point: a penalty
+force that grows with the penetration depth \cite{HuntCrossley1975}, or a unilateral
+constraint with Coulomb friction. Both assume that the contact patch is small against the bodies.
+Many contacts of practical interest are \emph{conforming} instead: a flat part on a table, a
+pin in a hole, a journal in a bearing. There the friction torque of a spinning disk or the
+tilt of an eccentric load depend on how the pressure is distributed over the patch.
+
+Several families of models address the patch. Elastic-foundation models cover a body with a
+bed of independent springs and sum their forces over a discretized surface,
+as the polygonal contact model does \cite{Hippmann2004}. Volumetric models
+\cite{Gonthier2005,Gonthier2007thesis} integrate the same foundation in closed form for a flat
+patch and express the wrench through the volume, the centroid and the inertia tensor of the
+overlap of the undeformed bodies. Pressure-field
+(hydroelastic) contact \cite{Elandt2019}, the patch model of Drake \cite{Drake},
+defines a pressure field inside each body and a contact surface where the two fields are equal.
+These models have been validated on a few cases each; the comparisons of
+simulators from robotics test point contacts \cite{Erez2015}, and the benchmarks of the
+multibody community are built on mechanisms with ideal joints \cite{Gonzalez2006}. We did
+not find a set of conforming-contact problems with analytic references that has been run
+across model families and across engines.
+
+This paper offers such a set and uses it. Its origin is the second author's doctoral thesis
+\cite{Vilela2018}, which evaluated Gonthier's volumetric model on the exact intersection of two
+triangle meshes inside one multibody code. The work reported here re-implements that pipeline
+as an engine-independent library, adds a second law that integrates the same foundation over
+the contact surface instead of lumping it, and runs both, next to baselines from the
+literature and the native contact models of Drake, Project Chrono \cite{Tasora2016} and MuJoCo
+\cite{Todorov2012}, on a battery of problems with known answers. The paper is a benchmark and
+a comparison; it does not propose a new contact model. This short version gives the laws, the
+benchmark and the main findings; the full paper and its supplementary material, cited as
+Sections~S1 to~S8, give the rest (Section~\ref{sh:conclusions}).
+
+\section{The two laws on exact mesh intersections}\label{sh:laws}
+
+Both laws are the Winkler foundation applied to the overlap of two undeformed bodies $A$ and
+$B$ given by closed triangle meshes. The overlap is read as a bundle of columns along a normal
+$\n$; a column of length $\ell$ stands for a spring compressed by $\ell$ and presses with
+$K\ell$ per unit of area, with the stiffness $K$ in N/m$^3$. A rate term of Hunt--Crossley form
+multiplies the pressure by $1 - h\,v_n$, with $v_n = \n\cdot\vv$ the rate at which the bodies
+separate and $h$ [s/m] the damping factor, and friction is Coulomb's, with coefficient $\mu$;
+$\vv$ and $\w$ are the velocity field and the angular velocity of $A$ relative to $B$.
+
+The boundary of the overlap is obtained by clipping the triangles of each mesh against the
+other, and the divergence theorem gives its volume $V$, its centroid $\vect{c}$ and its inertia
+tensor $\tens{J}$ (unit density, about $\vect{c}$), exact for the polyhedra given up to
+round-off. The normal $\n$ is the direction
+of the vector area of the part of the boundary that belongs to $B$. Both laws use one normal
+per contact region, and the distributed law requires convex shapes, so a non-convex body is
+given as convex pieces that fill it exactly.
+
+\paragraph{Gonthier's volumetric law.} The law \law{gonthier} implements the model of
+Gonthier's thesis \cite{Gonthier2007thesis} on the exact $V$, $\vect{c}$ and $\tens{J}$. The
+normal force acts along $\n$ at the centroid, with a rolling-resistance torque, and a Coulomb
+force and a Coulomb spinning torque share one friction budget:
+\begin{equation}
+  \Fn = K V \left(1 - h\,v_n\right), \;\;
+  \vect{M}_r = -K h\, \tens{J}\, \w_t , \;\;
+  \vect{f}_t = -\mu\,\Fn\,\frac{\vv_t}{v_\mathrm{avg}}, \;\;
+  \vect{M}_s = -\mu\,\Fn\, r_g^2\,\frac{\omega_n}{v_\mathrm{avg}}\,\n ,
+  \label{sh:gonthier}
+\end{equation}
+with $v_n$ and the tangential velocity $\vv_t$ taken at the centroid, $\w_t$ and
+$\omega_n$ the tangential and normal parts of $\w$, $r_g^2 = \n\cdot\tens{J}\,\n/V$ the squared
+radius of gyration of the overlap about the normal and
+$v_\mathrm{avg}^2 = |\vv_t|^2 + r_g^2\,\omega_n^2$. The lumping has a known price: for a flat
+circular patch of radius $R$, $r_g = R/\sqrt2$, whereas the exact Coulomb integral of a uniform
+pressure has the arm $2R/3$, so the spinning torque of the published model is 1.06 times the
+exact one.
+
+\paragraph{The distributed law.} The law \law{distributed} evaluates the same foundation point
+by point on the contact surface. Through a point $\x$ of a face of either body a column runs
+along $\pm\n$ to the first face of the surface of either body, and the pressure at $\x$, along
+the normal of its face, is
+\begin{equation}
+  p(\x) = \tfrac12\,K\,\ell(\x)\left(1 - h\,\n\cdot\vv(\x)\right),
+  \label{sh:pressure}
+\end{equation}
+each end of a column carrying half, so that the law is symmetric in $A$ and $B$; where the
+damping factor is negative there is no pressure, since there is no adhesion. The column length
+is piecewise affine, so the normal wrench is integrated exactly for the polyhedra, with no
+quadrature error and no dependence on the triangulation: one triangle per flat face is enough
+(Section~S1). For a flat contact the law reduces to the normal force of
+Eq.~\eqref{sh:gonthier}, and the first moment of the damped pressure is, to first order in the
+depth, the rolling resistance $\vect{M}_r$: under a rolling body the leading half of the patch
+is loaded more than the trailing half.
+
+\paragraph{Coulomb friction in closed form.} Every triangle of the contact surface carries a
+linear pressure $p$ and slips with the relative velocity field of the two bodies. The friction
+traction $-\mu\,p\,\vv_t/|\vv_t|$ changes direction over the triangle, so its integral is not a
+polynomial; it can nevertheless be done in closed form, because the slip field of a rigid
+motion in a plane is a rotation about a point $\q$, the instantaneous centre of the slip. With
+$\m$ the unit normal of the triangle $T$, $\rr = \x - \q$, $\sigma$ the sign of $\w\cdot\m$ and
+the pressure written as $p = p_q + \nabla p\cdot\rr$, the friction force and its moment about
+$\q$ are
+\begin{equation}
+  \vect{F}_f = -\mu\,\sigma\,\m\times\left(p_q\,\vect{U} + \tens{W}\,\nabla p\right), \qquad
+  \vect{M}_f = -\mu\,\sigma\left(p_q\,D + \nabla p\cdot\vect{R}\right)\m ,
+  \label{sh:friction}
+\end{equation}
+with four polar moments of the triangle,
+$D = \int_T |\rr|\,\dd A$, $\vect{R} = \int_T \rr\,|\rr|\,\dd A$,
+$\vect{U} = \int_T \rr/|\rr|\,\dd A$ and $\tens{W} = \int_T \rr\,\rr^{\mathsf T}/|\rr|\,\dd A$.
+$D$ and $\vect{U}$ are the moments that Jia \cite{Jia1997} gives for a polygon under uniform
+pressure; $\vect{R}$ and $\tens{W}$ are what the linear term adds. All four are evaluated edge
+by edge with an inverse hyperbolic sine and powers of a square root, with no case distinction
+for $\q$ inside, outside or on the boundary of the triangle (Section~S6 gives the formulas and
+their derivation). Earlier work on distributed contact interpolates the friction from the
+vertices or samples it at one point per face \cite{Hasegawa2004,Hippmann2004}. This closed
+form is the only element of \law{distributed} that we claim as new; the rest of the law
+belongs to the line that goes from Hasegawa and Sato \cite{Hasegawa2004} to hydroelastic
+contact \cite{Elandt2019}.
+
+\paragraph{Stiction and coupling.} Both laws hold a contact at rest with a bristle, a
+spring--damper on the tangential deflection whose stiffness is proportional to the load. The backends for Drake, Project Chrono
+and MuJoCo switch the engine's own contact off and apply the wrenches of the library as
+external forces, computed at the start of the step and held during it. This explicit coupling
+has a stability limit: for the normal stiffness of a flat contact of area $A_c$, with $w$ the
+inverse masses that the contacts of a body see and $\dt$ the step,
+\begin{equation}
+  K A_c\,\dt^2 \sum w < 4 ,
+  \label{sh:stability}
+\end{equation}
+and $<2$ with the dampers at their bounds, so a body of mass $m$ held between two flat contacts
+needs $\dt < \sqrt{m/(K A_c)}$. An implicit coupling needs the derivatives of the wrench, which
+the laws do not provide yet.
+
+\paragraph{Baselines.} Two variants of \law{distributed} replace only the closed form by the
+quadratures of the literature: the vertex rule of Hasegawa and Sato \cite{Hasegawa2004} and a
+one-point rule at the pressure centroid of each triangle. The law \law{pcm} is a per-face
+elastic foundation after the polygonal contact model \cite{Hippmann2004}: one spring per
+triangle, with a depth measured along local normals and a friction without a stick state.
+
+\section{The benchmark}\label{sh:benchmark}
+
+The battery has \result{battery/scenarios} scenarios, each with a set-up, a reference solution
+and an error measure, written once against an engine-independent interface
+(Table~\ref{sh:tab:scenarios}). Every scenario is classified by what its reference rests on.
+\emph{Class A}: a rigid-body result that does not depend on the contact model, such as the
+acceleration of a block on an incline. Only these
+scenarios compare a compliant law with a contact model of another kind on equal terms.
+\emph{Class B}: a reference that assumes a pressure distribution, such as the stop time of a
+spinning disk. The nominal reference uses the distribution that a rigid body produces on a
+Winkler foundation, so agreement with it is in part agreement with the model under test; other
+distributions are defensible, and the part of the reference that does not depend on the model is the \emph{band}
+that they span. For the disk, the friction torque over $\mu N R$, with $N$ the load, is $2/3$
+for uniform pressure, $1/2$ for uniform wear and $\pi/4$ for the rigid punch. A method inside
+the band is not wrong. \emph{Class C}: consistency with the Winkler foundation; the reference
+contains $K$ or integrates the law's own force. These scenarios say whether a method is a
+Winkler foundation of stiffness $K$, not whether it is accurate.
+
+\begin{table}[t]
+\caption{The scenarios, by class (Section~S7 gives the parameters and the reference of each)}
+\label{sh:tab:scenarios}
+\footnotesize
+\begin{tabular}{@{}p{0.05\linewidth}p{0.40\linewidth}p{0.48\linewidth}@{}}
+\toprule
+Class & Reference & Scenarios \\
+\midrule
+A & Rigid-body results: sliding and rolling on planes, in a bowl and on a turntable, impacts,
+    bodies that must be held, a ground cut into pieces, a shaft in a hole with clearance &
+  \scn{block}, \scn{cylinder}, \scn{sphere}, \scn{push}, \scn{billiard}, \scn{vgroove},
+  \scn{twoblocks}, \scn{bowl}, \scn{trough}, \scn{journal}, \scn{pieces1}, \scn{2}, \scn{8},
+  \scn{64}, \scn{wedge}, \scn{oblique}, \scn{edge}, \scn{turntable}, \scn{energy}, \scn{tower},
+  \scn{massratio} \\
+B & Stop time of a spinning body under an assumed pressure, with its band &
+  \scn{disk}, \scn{contensou}, \scn{ring}, \scn{bearing} (a shaft in a hole of its own radius),
+  \scn{cone} (a frustum in a conical seat) \\
+C & The foundation's own predictions: tipping angle, rebound, depth of a press fit, tilt &
+  \scn{tip}, \scn{drop}, \scn{hole}, \scn{corner}, \scn{offset}, \scn{stack},
+  \scn{restitution} \\
+\botrule
+\end{tabular}
+\end{table}
+
+The error of a run is the worst normalized deviation of every quantity that the reference
+fixes. Errors are not commensurable across scenarios, so methods are
+compared within a scenario. Parameters are fixed before any run; the
+foundations have $K$ between $10^6$ and $10^8$\,N/m$^3$ and $h = 5$\,s/m. Every scenario is run
+in a base variant (curved surfaces with 64 segments per turn, $\dt = 1$\,ms) and in series of
+the step (2 to 0.1\,ms), the mesh (32 and 128 segments), the stiffness ($K\times10$) and
+perturbed initial velocities, with the methods of the library on each of the three engines and
+with six native models, in \result{battery/runs} runs.
+
+The native models stand for three families. \emph{Point contact}: Drake's compliant point
+contact, Chrono's penalty model (SMC) and MuJoCo's soft constraints with two sets of
+parameters; a contact between two faces is a few points with a stiffness in N/m.
+\emph{Complementarity contact}: Chrono NSC, rigid contact with Coulomb friction.
+\emph{Pressure-field contact}: Drake hydroelastic, configured so that its pressure is $K$
+times the depth; it is then the same pressure model as the two laws near the surface, in
+another discretization. The configurations are ours and were not reviewed by the developers of
+the engines, so we draw from the native runs only what follows from a property of the model
+family (Section~S3 gives the configurations and every other result).
+
+\section{Findings}\label{sh:findings}
+
+Each law gives the same errors on the three engines, within \result{independence/worst}
+wherever a run holds (a run holds when it finishes with an error below 100\,\%, and is lost
+when the error is larger); the three backends share no code, so this is a check of the
+implementation. Their step series are mostly flat (\result{convn/dt/distributed/flat} of
+\result{convn/dt/distributed/n} for \law{distributed}), so the errors at the base step are
+mostly those of the model and the mesh, not of the time integration.
+
+\subsection{Class A: where the laws fail, and why}\label{sh:classA}
+
+Where a body slides or rolls on one plane both laws are within 1\,\%, except for the time at
+which rolling starts in \scn{billiard} (\result{err/billiard/gonthier} and
+\result{err/billiard/distributed}), and they hold the bodies that must be held
+(\scn{push}, \scn{wedge}, \scn{tower}). The methods without a stick state creep long before the friction limit (\law{pcm}:
+\result{err/push/pcm} in \scn{push}). The larger errors of the two laws have causes that can
+be predicted.
+
+\emph{Rolling resistance of the damped foundation.} In \scn{turntable}, a ball rolling on a
+free rotating table whose rigid orbit is a closed circle, the orbit rate is right and the
+radius grows by \result{err/turntable/distributed}. The cause is the torque $\vect{M}_r$ of
+Eq.~\eqref{sh:gonthier}: the no-slip equations with it predict an orbit that grows by 77\,\%
+over the run.
+% 77 %: a prediction, typed as in sections/05-results.tex (docs/history.md).
+This is the model's answer at the $h$ and $K$ of the scenario, not a numerical error: any
+damped Winkler foundation has this torque, and with $K\times10$ the error falls to \result{err/turntable/distributed/stiff}.
+
+\emph{The stability bound of the explicit coupling.} In \scn{massratio} a 1\,kg block lies
+between a 1000\,kg block and the ground, and Eq.~\eqref{sh:stability} requires a step below
+0.25\,ms. The two laws lose the block at 2, 1 and 0.5\,ms and hold it from 0.2\,ms, with
+\result{err/massratio/distributed/dt0.2} of error there. Complementarity contact, implicit in
+the contact force, holds the scenario at the base step.
+
+\emph{One normal per pair of convex pieces.} In \scn{journal}, a shaft spinning in a hole with
+clearance, the error of \law{distributed} does not fall with the mesh:
+\result{err/journal/distributed/mesh32}, \result{err/journal/distributed} and
+\result{err/journal/distributed/mesh128} at 32, 64 and 128 segments per turn, while \law{pcm},
+whose depth follows the local normal, reaches \result{err/journal/pcm/mesh128} at 128. The
+geometry of \law{distributed} is exact for the polyhedra, but its answer for a curved
+conforming contact does not converge to that of the curved bodies.
+
+\subsection{Class B: the band, and a finite-element reference}\label{sh:classB}
+
+Table~\ref{sh:tab:errors-B} gives the errors against the nominal reference and marks the
+position of each run against the band. No elastic-foundation method is outside the band in any
+scenario: \law{distributed}, \law{gonthier}, \law{pcm} and Drake hydroelastic have no run
+marked as outside (the variant with the friction of the 2018 thesis is the exception among the
+methods of the library). \law{distributed} and Drake hydroelastic, the two methods that integrate the
+foundation over the contact surface, also meet the nominal value, within
+\result{err/bearing/distributed} and \result{err/cone/hydro}. That agreement is a consistency
+result: the nominal value is the model's own distribution, so two independent implementations
+of the same pressure model integrate it correctly, and nothing follows about whether that
+pressure is the true one. \law{gonthier} misses the nominal value by what its lumping
+predicts, \result{err/disk/gonthier} in \scn{disk}. A point-contact model does not represent
+the distribution: a face held by points of its rim has the friction torque of a ring,
+$\mu N R$ against $\tfrac23\mu N R$ for the disk, unless the user supplies a torsional
+friction coefficient for each geometry; the same holds for complementarity contact on the same
+contact points. Each of these models is outside the band in
+\result{band/smc/outside} to \result{band/dpoint/outside} of the five scenarios.
+
+\begin{table}[t]
+\caption{Class B: error [\%] against the nominal reference, base variant. Gon: \law{gonthier};
+G18: its variant with the friction of the 2018 thesis; Dis: \law{distributed}; Dr-h, Dr-p: Drake hydroelastic and point; Ch-S, Ch-N:
+Chrono SMC and NSC; Mj-s, Mj-d: MuJoCo soft and default. Band: in percent of the nominal stop
+time. $^\dagger$: outside the band; $^{*}$: undetermined (the sign of the error was not
+recorded); unmarked: inside; \textit{nan}: no error value. Native models: results of our
+configurations}
+\label{sh:tab:errors-B}
+\generatedtable{errors_B}
+\end{table}
+
+To place a continuum in the band we solved by finite elements the static frictionless contact
+of a linear-elastic support with a rigid body, for \scn{disk} and \scn{bearing}. A thin layer
+is a Winkler foundation, with a nearly uniform pressure under the disk. The slab of the
+battery is thick, and there the shear between neighbouring fibres, which a Winkler foundation
+omits, moves the load to the rim: a continuum support puts \scn{disk} at the rigid-punch end
+of its band, with a stop time 15\,\% shorter than the nominal one. Against that reference
+\law{distributed} and Drake hydroelastic, which reproduce the uniform pressure of their own
+model, stop 18\,\% late. This is a limit of the Winkler foundation itself on a thick support,
+shared by its two independent integrations; a finer mesh or a smaller step would not reduce
+it. For \scn{bearing} the continuum sleeve gives, for $\nu=0.3$, the cosine pressure of the foundation, the
+four foundation methods are within 5\,\% of the finite-element stop time and the reference
+cannot rank them (Section~5.4 of the full paper).
+% 15 %, 18 %, 5 %: typed from sections/fem-reference.tex (tools/fem, results/fem).
+
+On class C, a consistency check, \law{distributed} is within 5\,\% in
+\result{pass/C/distributed/5} scenarios and \law{gonthier} in \result{pass/C/gonthier/5}; on a
+ground cut into 64 pieces \law{distributed} gives the same error
+(\result{err/pieces64/distributed}).
+
+\subsection{The friction quadrature and the triangulation}\label{sh:quadrature}
+
+On the meshes of the battery the closed-form friction and the two quadratures of the
+literature differ widely on the flat contacts that spin: in \scn{disk},
+\result{err/disk/distributed} with the closed form against \result{err/disk/vertex} with the
+vertex rule and \result{err/disk/centroid} with one point per triangle. The size of those differences is a property of the battery's
+meshes, in which the flat cap of a disk is a fan of long triangles from a vertex of its rim.
+To separate the rule from the mesh, the three rules were evaluated apart from the library on a
+disk spinning under uniform pressure, for several triangulations of the same face
+(Fig.~\ref{sh:fig:triangulation}). The closed form gives the same wrench on every
+triangulation, to round-off. On the fan from the rim the error of the spin torque is
+\result{tri/disk/spin/rim-fan/64/centroid/moment} with the one-point rule and
+\result{tri/disk/spin/rim-fan/64/vertex/moment} with the vertex rule, at any number of segments; on well-shaped
+triangles both converge at second order. So the closed form is not more accurate than a
+well-used quadrature. What it gives is independence: the
+friction wrench of a flat face does not depend on how the face is triangulated or on how the
+bodies are cut into pieces, so a flat face needs no mesh of its own.
+
+\begin{figure}[t]
+\centering
+\generatedfigure[width=0.85\linewidth]{ablation_triangulation}
+\caption{Error of the spin torque of a disk under uniform pressure with the one-point rule and
+with the vertex rule, against the number of triangles of the face, for five families of
+triangulations. The closed form has no error on any of them}
+\label{sh:fig:triangulation}
+\end{figure}
+
+\subsection{A stiffer foundation: friction-induced flutter}\label{sh:flutter}
+
+A foundation ten times stiffer reduces the class A errors that come from the compliance and
+the damping, and makes the class B errors of the two laws larger in \result{stiffn/distributed/worse/B} of
+the five scenarios: \scn{disk} goes from
+\result{err/disk/distributed/dt0.2} to \result{err/disk/distributed/stiff} for
+\law{distributed}, at the same step. The cause is not the explicit coupling, since in
+diagnostic runs the error was the same at steps from 1 to 0.05\,ms; it is a self-excited
+wobble of the model. A tilt of the spinning disk shifts the pressure, so the friction of the
+heavier side no longer cancels that of the lighter one, and the net friction force acts at the
+contact, half the thickness $H$ of the disk below the centre of mass. Its moment turns the
+tilt instead of restoring it, and the whirl grows when
+\begin{equation}
+  \mu K\,\frac{\pi R^3}{3}\,\frac{H}{2} \;>\; c_\theta\,\omega_\theta ,
+  \qquad c_\theta = \frac{h\,m g R^2}{4}, \qquad \omega_\theta = \sqrt{\frac{K I_A}{I_t}} ,
+  \label{sh:eq:flutter}
+\end{equation}
+with $c_\theta$ the rocking damping of the foundation under the weight $m g$,
+$I_A = \pi R^4/4$ and $I_t$ the transverse moment of inertia of the disk. For the disk of the scenario the threshold is about twice the scenario's stiffness:
+at $K$ the wobble decays, at $3K$ the condition predicts a growth of 6\,s$^{-1}$ and the
+diagnostic run showed 6.6, and at $10K$ it predicts 31\,s$^{-1}$ against 32 measured. The disk
+then rides on its rim and stops early.
+% Typed as in sections/05-results.tex (docs/research/anomalies.md §1).
+The left side grows with $K$ and the right side with $\sqrt K$: a foundation made stiffer at
+the same $h$ is less damped in rocking. Eq.~\eqref{sh:eq:flutter} is a limit of validity of
+the damped Winkler law with sliding friction under a body whose centre of mass is above the
+contact, and not a defect of an implementation.
+
+\subsection{Cost and paired comparisons}\label{sh:cost}
+
+In wall-clock time over simulated time, on one processor and at the base step, \law{gonthier}
+has a median of \result{cost/gonthier/median}, \law{distributed} of
+\result{cost/distributed/median} and Drake hydroelastic, as configured here, of
+\result{cost/hydro/median}. Across scenarios, two methods are compared by the geometric mean
+of the ratio of their errors on the same scenarios, with a bootstrap interval and Holm's
+correction over \result{primary/n} primary comparisons (Section~S5). Only
+\result{primary/significant} survive the correction, both on classes A and B together:
+\law{distributed} has about half the error of \law{gonthier}
+(\result{robust/distributed-vs-gonthier/A+B/full}) and about a quarter of that of Chrono SMC
+(\result{robust/distributed-vs-smc/A+B/full}), the latter narrowly. On class A alone nothing
+separates the laws from the native models.
+
+\section{Which law to use when}\label{sh:which}
+
+Table~\ref{sh:tab:decision} sets the situations of the battery
+against the property of a contact model that each one needs. Hydroelastic contact, the same
+pressure model as \law{distributed} near the surface with a curved contact surface and an
+implicit solver, serves better a user who needs non-convex geometry, stiff contact or large
+steps, and needs a pressure field in every compliant body.
+
+\begin{table}[t]
+\caption{Which property of a contact model each situation needs, as far as classes A and B of
+the battery show}
+\label{sh:tab:decision}
+\footnotesize
+\begin{tabular}{@{}p{0.36\linewidth}p{0.58\linewidth}@{}}
+\toprule
+Situation & What it needs \\
+\midrule
+A rigid body sliding or rolling on one plane & Nothing beyond point or complementarity
+  contact; a patch model adds nothing \\
+A flat face that spins, or slides and spins & A pressure distributed over the face:
+  \law{distributed} or a pressure field; \law{gonthier} where its lumping error is acceptable \\
+Curved conforming contact (a journal, a conical seat) & Local normals: a per-face foundation
+  or a pressure field. A finer mesh is not a remedy for \law{distributed} \\
+Bodies or grounds cut into convex pieces & A wrench independent of the cut: \law{distributed} \\
+A body held by friction near its limit & A stick state, or a complementarity formulation \\
+Stiff contacts on light bodies, large mass ratios & A formulation implicit in the contact
+  force; not the explicit laws beyond Eq.~\eqref{sh:stability} \\
+Long rolling & No damping torque in the patch: rigid contact, or the laws with little damping
+  or a stiff foundation \\
+Only surface meshes are available & \law{gonthier} (any closed mesh) or \law{distributed}
+  (convex pieces) \\
+\botrule
+\end{tabular}
+\end{table}
+
+\section{Limitations, conclusions and where to find the rest}\label{sh:conclusions}
+
+Every reference of the battery is analytic, and the finite-element one is static and covers
+two scenarios; there is no experimental reference, and nothing here shows that a Winkler
+foundation of stiffness $K$ describes a physical contact beyond a thin layer. The foundations are soft, chosen so that the explicit coupling is stable at the base
+step, and the damping factor has no physical justification. The scenarios
+are few and hand-picked, and the laws were changed after seeing every one of them (the last
+\result{battery/heldout} scenarios, written with their references before any law was run on
+them, still saw three general changes after their first run), so no part of the
+battery is an out-of-sample test of the two laws and the statistics are descriptive. The
+results of the native models are results of our configurations and should not be read as the
+performance of those engines in expert hands.
+Section~7 of the full paper states these limits in full.
+
+The battery, with its classes and its band of admissible pressure distributions, is the
+reusable product of the work; the laws are an open implementation of known models. The findings that we expect to survive another battery are those tied to a
+mechanism: the rim torque of a point contact, the 6\,\% of Gonthier's lumping, the distance
+between the foundation and a continuum on a thick support, the rolling resistance of the
+damped foundation, the flutter of Eq.~\eqref{sh:eq:flutter}, the stability bound of
+Eq.~\eqref{sh:stability}, and one normal per pair of convex pieces on curved conforming
+contact. An implicit coupling, with the Jacobians of the contact
+wrench, would remove the step limit, and an experimental reference would turn consistency with
+an assumed pressure into validation.
+
+Everything else is at \code{https://dvilelaf.github.io/volumetric-contact/}: the full paper
+(\code{paper.pdf}: the related work, the laws in full, the tables of every class, the
+discussion), its supplementary material (\code{supplement.pdf}, Sections~S1 to~S8: the
+constructions, the step bounds, the native configurations, the complete tables, the statistics,
+the derivation of the polar moments, the parameters of every scenario, the wider related work) and a viewer that replays every run. The library, the scenarios, the results and the sources of the papers, with the
+scripts that generate every number in them, are open source (BSD 3-Clause) at
+\code{https://github.com/dvilelaf/volumetric-contact}.
+
+\backmatter
+
+\section*{Declarations}
+
+\bmhead{Use of generative AI}
+This work was carried out by a generative AI system, listed as first author, under human
+direction: the software, the design of the benchmark, the analysis of its results and this
+manuscript were produced by the model Claude Fable~5.2 (Anthropic), which also directed
+further instances of Claude models. The
+second author set the questions, decided the scope, and approved the changes to the contact
+laws and the rules of the benchmark; the full paper describes the division
+of work in full. The first author is an AI system and cannot be held accountable; the second
+author directed the work and is the person to whom questions about it should be addressed.
+
+\bmhead{Funding, competing interests, data and code}
+No funding was received. The second author has no competing interests to declare; the first
+author is a commercial AI system developed by Anthropic. The code and the results are at the address given above.

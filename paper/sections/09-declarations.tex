@@ -1,0 +1,64 @@
+% Back matter. The statements are factual records of how the work was produced.
+
+\section*{Declarations}
+
+\bmhead{Use of generative AI}
+This work was carried out by a generative AI system, listed as first author, under human
+direction, and we describe the division of work in full. The software
+described in this paper (the engine-independent library, the three engine backends, the
+scenarios, the baselines and the tools), the design of the benchmark, the analysis of its
+results and the draft of this manuscript were produced with Claude (Anthropic), used through
+its coding agent Claude Code, under the direction of the second author. The work, from 10 to 12 November 2026, was carried out mostly by the model
+Claude Fable~5.2, which also directed further instances of itself, of Claude Opus~5.5 (an
+independent audit of the code and referee reports) and of Claude Sonnet~5.5 (auxiliary tasks:
+scripts, packaging, the viewer and the site). The
+starting point was the second author's 2018 thesis \cite{Vilela2018} and its code. The second author set the
+questions, decided the scope, approved the changes to the contact laws and the rules of the
+benchmark. Under that direction the system reviewed the literature and
+proposed the framing of the paper as a benchmark; designed and implemented the laws' evaluation,
+including the derivation and the numerical check of the formulas of Section~\ref{sec:friction};
+audited the first version of the benchmark and redesigned it, including the classification of
+the references and the second set of scenarios; configured the native models from the engines'
+documentation; ran the battery; wrote the scripts that compute the statistics and generate
+every number, table and figure of the paper from the result files; drafted the text; and, in a
+further session, wrote a referee's report on the manuscript and revised the analysis and the
+text in response to it (12 November 2026). The
+schematic figures are diagrams drawn by the system from the geometry of the paper and the plots are generated
+from the data; there are no generated images. Every reference in the bibliography was checked
+against the publisher's or registry's record, and the repository records which sources were
+read in full. The first author is an AI system and cannot be held accountable; the second author
+directed the work and is the person to whom questions about it should be addressed.
+
+\bmhead{Funding}
+No funding was received for this work.
+
+\bmhead{Competing interests}
+The second author has no competing interests to declare; the first author is a commercial AI
+system developed by Anthropic.
+
+\bmhead{Data and code availability}
+The library, the three engine backends, the scenarios with their references, the mesh generator,
+the scripts that run the battery and compute its statistics, and the sources of this paper with
+the scripts that generate its numbers, tables and figures and check its derivations and
+references are open source under the BSD 3-Clause licence at
+\code{https://github.com/dvilelaf/volumetric-contact}. The
+build runs in a container with pinned versions of Drake, Project Chrono and MuJoCo. The results
+of the battery reported here (\code{battery.csv}, with checksum \result{battery/sha256};
+\code{terms.csv}; \code{stats.json}) are part of the repository, one command regenerates from
+them every number, table and figure of the paper, and the trajectories of the runs can be
+replayed in a viewer published with it. The main matrix was run on \result{battery/date} with
+the code of commit \result{battery/commit}; the friction quadratures and \law{pcm} were added
+at commit \result{battery/commit-baselines}, after \result{battery/spot-runs} runs spread over
+the scenarios reproduced the main matrix (largest relative difference
+\result{battery/spot-diff}); the timings are those of commit \result{battery/timing-commit} on
+\result{battery/timing-date}. The derivations of the predictions quoted in the text and the
+single diagnostic runs behind them are recorded in the history of the repository.
+
+\bmhead{Author contributions}
+Claude Fable~5.2: methodology, software, validation, formal analysis, investigation, data
+curation, visualization, writing (original draft, review and editing). David Vilela:
+conceptualization, supervision, project administration, and the 2018 thesis from which the work
+derives \cite{Vilela2018}.
+
+\bmhead{Ethics approval, consent to participate, consent for publication}
+Not applicable.

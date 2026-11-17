@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- Template of the landing page. scripts/site.sh fills the {{...}} fields (site/build_page.py). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volumetric contact: an analytic benchmark for conforming contact</title>
+<meta name="description" content="An engine-independent C++ library of two elastic-foundation contact laws on exact mesh intersections, and a battery of {{scenarios}} scenarios with analytic references run on Drake, Chrono and MuJoCo.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="top">
+  <h1>Volumetric contact</h1>
+  <nav aria-label="Links">
+    {{links}}
+  </nav>
+</header>
+
+<main>
+  <section class="lead">
+    <p class="claim">When two bodies touch over a patch and not at a point, which contact model gets the physics right?</p>
+    <p>Conforming contact (a shaft in a bearing, a peg in a hole, a block resting on a face) is where
+    point-contact models are least reliable. This project compares two elastic-foundation laws, evaluated
+    on the exact intersection of triangle meshes, with the native contact of Drake, Chrono and MuJoCo, on a
+    battery of {{scenarios}} scenarios whose answer is known analytically.</p>
+    <p>The work was carried out by an AI system (Claude Fable 5.2, Anthropic) directed and supervised by
+    David Vilela.</p>
+    <p>The laws live in an engine-independent C++20 library. Every number on this page comes from a
+    run you can replay: pick a scenario and watch each engine against the theory.</p>
+  </section>
+
+  <section class="results" aria-labelledby="rank-h">
+    <h2 id="rank-h">Which contact model should I use?</h2>
+{{ranking}}
+  </section>
+
+  <section class="pick" aria-labelledby="pick-h">
+    <h2 id="pick-h">Replay a scenario</h2>
+    <p class="hint">Each link opens the viewer on that scenario: the bodies move in 3D next to the plots of the
+    quantity the theory predicts. The badge is the class of the theory: A a rigid-body result, B an assumed
+    pressure distribution, C the elastic-foundation model itself.</p>
+    <ul class="scenarios">
+{{scenario_list}}
+    </ul>
+  </section>
+
+  <section class="results" aria-labelledby="res-h">
+    <h2 id="res-h">Results by class</h2>
+{{results}}
+  </section>
+
+{{figures}}
+
+  <section class="notes" aria-labelledby="lim-h">
+    <h2 id="lim-h">What the evidence does not cover</h2>
+    <p>There is no experimental reference: the references are analytic, and class C tests the consistency of the
+    foundation model, not its accuracy against reality. A static finite-element solution exists for two class B
+    scenarios: it confirms the foundation's pressure for a thin sleeve, and shows that on a thick slab the
+    foundation itself, and with it every model built on it, Drake's hydroelastic contact included, misses the
+    stop time of a spinning disk. The coupling with the engines is
+    explicit, which limits very stiff contacts. The full list of open problems is in the
+    <a href="{{repo}}#limitations">README</a>.</p>
+  </section>
+</main>
+
+<footer>
+  <p>Code under the BSD 3-Clause licence. {{footer}}</p>
+</footer>
+</body>
+</html>

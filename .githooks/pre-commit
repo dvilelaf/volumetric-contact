@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Runs the checks on what is staged; see scripts/verify.
+exec "$(git rev-parse --show-toplevel)/scripts/verify" changed --staged

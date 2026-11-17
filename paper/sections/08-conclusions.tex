@@ -1,0 +1,52 @@
+\section{Conclusions}\label{sec:conclusions}
+
+We have presented a battery of \result{battery/scenarios} conforming- and patch-contact
+problems with analytic references, classified by what each reference assumes, and run on it two
+elastic-foundation laws evaluated on exact mesh intersections, two baselines from the
+literature on the same geometry and six native contact models of Drake, Chrono and MuJoCo. The
+battery, with its classes, its band of admissible pressure distributions, its error terms and
+its rules, is the reusable product of the work; the laws are an open, engine-independent
+implementation of known models. The findings are these.
+\begin{enumerate}
+\item Where the answer depends on the pressure distribution, no elastic-foundation method is
+  outside the band of admissible distributions; \law{distributed} and Drake hydroelastic, two
+  discretizations of the same pressure model, agree with the model's own distribution within
+  \result{err/bearing/distributed} and \result{err/cone/hydro}, which is consistency and not
+  validation. A finite-element solution shows where in the band a continuum support falls
+  (Section~\ref{sec:fem}): on the Winkler cosine for the thin sleeve of \scn{bearing}, where the
+  four foundation methods are within 5\,\% of it and it cannot rank them, and at the rigid-punch
+  end for the thick slab of \scn{disk}, against which \law{distributed} and Drake hydroelastic
+  stop 18\,\% late. That is a limit of the Winkler foundation itself on a thick support, not of
+  the discretization. A point contact gives a face the friction torque of its rim, and Gonthier's
+  lumping costs the 6\,\% that its radius of gyration predicts.
+\item The failures of the two laws follow from their model or from their coupling, with
+  predictions that the runs match: the rolling resistance of the damped foundation makes a
+  rolling orbit grow by \result{err/turntable/distributed} against 77\,\% predicted; a spinning
+  disk on a foundation ten times stiffer flutters at the threshold and with the growth rates of
+  a linear model, Eq.~\eqref{eq:flutter}; the explicit coupling loses a light body between
+  stiff contacts above the step of Eq.~\eqref{eq:stability} and holds it below; a compliant
+  foundation lets a block pitch over an edge early. One normal per pair of convex pieces stops
+  the convergence of \law{distributed} on a journal in a hole with clearance.
+\item The closed-form Coulomb friction of a linear pressure on a triangle makes the friction
+  wrench of a flat face independent of its triangulation and of the decomposition of the
+  bodies. One-point and vertex quadratures lose \result{tri/disk/spin/rim-fan/64/centroid/moment}
+  and \result{tri/disk/spin/rim-fan/64/vertex/moment} of the spin torque of a disk triangulated
+  as a fan from its rim, whatever the number of segments, and converge at second order on
+  well-shaped meshes. The gain is a mesh that is not needed, not accuracy that a quadrature
+  cannot reach.
+\item Each law gives the same errors on three engines (within \result{independence/worst}
+  wherever a run holds), and its step series are mostly flat, so the reported errors are
+  mostly those of the model and the mesh. Gonthier's friction as published, with the bristle on
+  the material slip, holds the bodies that the variant of the 2018 thesis lets creep.
+\item Of \result{primary/n} paired comparisons of errors, \result{primary/significant} survive
+  a correction for multiplicity: \law{distributed} has about half the error of \law{gonthier}
+  on classes A and B, and about a quarter of that of Chrono SMC, the latter narrowly. On the
+  rigid-body references alone nothing separates the laws from the native models.
+\end{enumerate}
+
+Two things would change the weight of these conclusions. An implicit coupling, with the
+Jacobians of the contact wrench, would remove the step limit that is the main practical
+disadvantage of the laws. And an experimental reference, with finite-element ones for the
+other scenarios of class B and for the dynamics of the runs, would turn consistency with an
+assumed pressure into validation; the static one of Section~\ref{sec:fem} covers two scenarios
+(Section~\ref{sec:limitations}).

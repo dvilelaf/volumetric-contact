@@ -1,0 +1,64 @@
+% Short version of the paper (paper/main.tex), of about ten pages, in the length of a conference
+% paper. Built by scripts/paper.sh into paper/short.pdf. It shares the preamble, the generated
+% numbers, tables and figures and the bibliography of the paper; its text is sections/short.tex.
+% It states no result that the paper does not state, and takes its numbers from the same
+% \result{} keys.
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
+
+\input{preamble}
+
+\begin{document}
+
+\title[An analytic benchmark for conforming contact (short version)]{An analytic benchmark for
+conforming contact: volumetric and elastic-foundation laws on exact mesh intersections against
+the native contact models of Drake, Chrono and MuJoCo (short version)}
+
+\author[1]{\fnm{Claude} \sur{Fable 5.2}}
+\author*[2]{\fnm{David} \sur{Vilela}}\email{dvilelaf@gmail.com}
+
+\affil[1]{\orgname{AI system (large language model, Anthropic)}; carried out the work}
+\affil*[2]{\orgname{Independent researcher}, \orgaddress{\country{Spain}}; directed and supervised
+the work}
+
+% The numbers come from generated/numbers.tex, except the 18 % of the finite-element reference,
+% typed as in the paper (sections/00-abstract.tex).
+\abstract{Conforming contact, where the patch is not small against the bodies, is where
+point-contact models are least reliable, and the model families that address it have not been
+compared on common problems with known answers. We present a battery of
+\result{battery/scenarios} scenarios with analytic references, classified by what each
+reference rests on: a rigid-body result (class A), an assumed pressure distribution (B, read
+against the band of admissible distributions) or the elastic-foundation model itself (C). On
+it we run two elastic-foundation laws evaluated on exact mesh intersections, Gonthier's lumped
+volumetric model and a distributed law that integrates the same foundation over the contact
+surface, the quadratures of the literature, \law{pcm} and six native contact models of Drake, Chrono and MuJoCo.
+On class B no elastic-foundation method is outside the band, while a face held at points of
+its rim has the friction torque of a ring. The failures of the two laws are explained with
+predictions that match the measurements: the rolling resistance of the damped foundation, a
+friction-induced flutter, the stability bound of the explicit coupling. A closed-form Coulomb friction wrench for a linear
+pressure on a triangle, the one new ingredient, makes friction independent of the
+triangulation. Against a finite-element solution, the methods that integrate the foundation
+correctly stop a disk spinning on a thick slab 18\,\% late, a limit of the foundation itself. There is no experimental reference, and the configurations of
+the native models are ours and unreviewed. The work was carried out by an AI system (Claude
+Fable~5.2, first author) directed and supervised by the second author.}
+
+\keywords{conforming contact, volumetric contact model, elastic foundation, Coulomb friction,
+benchmark, multibody dynamics}
+
+\maketitle
+
+% How the work was produced, stated on the first page (the owner's decision on the byline).
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{\small\textbf{How this work was produced.} This work was carried out
+by an artificial-intelligence system, which is listed as its first author to state that plainly.
+The model Claude Fable~5.2 (Anthropic), working as an autonomous coding agent and directing
+further instances of Claude models, reviewed the literature, wrote the software, designed, ran and
+analysed the benchmark, and wrote this manuscript. David Vilela set the questions, directed and
+supervised the work and took its decisions. This is the short version of a technical report;
+Section~\ref{sh:conclusions} says where the full paper, its supplement and the code are.}}
+\end{center}
+
+\input{sections/short}
+
+\bibliography{references}
+
+\end{document}

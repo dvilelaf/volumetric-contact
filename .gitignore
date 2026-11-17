@@ -1,0 +1,13 @@
+/build*/
+/.venv/
+__pycache__/
+compile_commands.json
+/.ccache/
+/results/traj/
+/data/*/*/volume.vtk
+/results/parts/
+
+# Paper build (scripts/paper.sh)
+/paper/build/
+/paper/main.pdf
+/paper/supplement.pdf

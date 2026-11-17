@@ -1,0 +1,50 @@
+% Slip field about the instantaneous centre, and the polar decomposition for one edge.
+\begin{tikzpicture}[scale=1.0, font=\footnotesize, >=Stealth]
+  % ---- Left: slip field -------------------------------------------------------
+  \begin{scope}
+    \coordinate (q) at (0,0);
+    \coordinate (p0) at (1.3,0.5);
+    \coordinate (p1) at (4.3,0.2);
+    \coordinate (p2) at (2.9,2.9);
+    \fill[gray!12] (p0) -- (p1) -- (p2) -- cycle;
+    \draw[thick] (p0) -- (p1) -- (p2) -- cycle;
+    \fill (q) circle (1.3pt) node[below left] {$\q$};
+    % Arcs of the rotation.
+    \foreach \rad in {2.0,3.0,3.8} {
+      \draw[gray, thin, densely dotted] (5:\rad) arc (5:60:\rad);
+    }
+    % Slip vectors at sample points: perpendicular to r, length proportional to |r|.
+    \foreach \px/\py in {1.9/0.7, 3.2/0.6, 2.4/1.5, 3.5/1.3, 2.9/2.2, 2.0/1.0} {
+      \draw[->] (\px,\py) -- ++({-0.22*\py},{0.22*\px});
+    }
+    \coordinate (x) at (3.5,1.3);
+    \draw[thin] (q) -- node[below, pos=0.55, inner sep=2pt] {$\rr$} (x);
+    \fill (x) circle (1pt) node[right, inner sep=2pt] {$\x$};
+    \node[anchor=east] at (2.2,2.6) {$\vv_t = \omega_m\,\m\times\rr$};
+    \draw[->] (0.55,0) arc (0:70:0.55) node[above left, inner sep=1pt] {$\omega_m$};
+  \end{scope}
+  % ---- Right: polar coordinates for one edge ----------------------------------
+  \begin{scope}[xshift=6.6cm]
+    \coordinate (q) at (0,0.2);
+    \coordinate (a) at (3.0,-0.5);
+    \coordinate (b) at (3.0,2.9);
+    \coordinate (f) at (3.0,0.2);
+    \fill[gray!12] (q) -- (a) -- (b) -- cycle;
+    \draw[thick] (a) -- (b);
+    \draw (q) -- (a) node[below] {$\vect{a}$};
+    \draw (q) -- (b) node[above] {$\vect{b}$};
+    \draw[dashed] (q) -- node[below, pos=0.45, inner sep=2pt] {$\eta$} (f);
+    \draw (2.8,0.2) -- (2.8,0.4) -- (3.0,0.4);
+    \fill (q) circle (1.3pt) node[left] {$\q$};
+    \draw[->, thick] (q) -- ++(0.9,0) node[below, inner sep=2pt] {$\vect{e}_1$};
+    \draw[->, thick] (q) -- ++(0,0.9) node[left, inner sep=2pt] {$\vect{e}_2$};
+    % A ray at angle theta.
+    \coordinate (r) at (3.0,1.7);
+    \draw[thin] (q) -- (r);
+    \draw[->] ($(q)+(1.5,0)$) arc (0:26.5:1.5);
+    \node at (1.75,0.6) {$\theta$};
+    \node[anchor=west] at (3.05,1.7) {$r = \eta\sec\theta$};
+    \node[anchor=west] at (3.05,-0.2) {$\theta_a$};
+    \node[anchor=west] at (3.05,2.6) {$\theta_b$};
+  \end{scope}
+\end{tikzpicture}

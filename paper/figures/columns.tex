@@ -1,0 +1,49 @@
+% Section of an overlap with its columns and the pair normal.
+\begin{tikzpicture}[scale=1.0, font=\footnotesize, >=Stealth]
+  % Body B (ground with a step, so that the contact is not a single plane)
+  \coordinate (b1) at (-4.2,0);
+  \coordinate (b2) at (4.2,0);
+  \fill[gray!18] (-4.2,-1.6) rectangle (4.2,0);
+  \draw[thick] (b1) -- (b2);
+  \node[anchor=south west] at (-4.1,-1.55) {$B$};
+  % Body A: a wedge-like convex polygon pressed into B, tilted.
+  \coordinate (a1) at (-2.6,0.55);
+  \coordinate (a2) at (-0.4,-0.75);
+  \coordinate (a3) at (2.9,0.35);
+  \coordinate (a4) at (2.2,2.3);
+  \coordinate (a5) at (-2.0,2.4);
+  \fill[gray!8] (a1) -- (a2) -- (a3) -- (a4) -- (a5) -- cycle;
+  \draw[thick] (a1) -- (a2) -- (a3) -- (a4) -- (a5) -- cycle;
+  \node at (0.2,1.7) {$A$};
+  % Intersections of A's lower edges with y = 0.
+  \coordinate (p) at ($(a1)!{0.55/1.30}!(a2)$);   % on edge a1-a2 at y=0
+  \coordinate (q) at ($(a2)!{0.75/1.10}!(a3)$);   % on edge a2-a3 at y=0
+  % Overlap
+  \fill[pattern=north east lines, pattern color=gray!70] (p) -- (a2) -- (q) -- cycle;
+  \draw[very thick] (p) -- (q);                    % part of dV on B
+  \draw[very thick, densely dashed] (p) -- (a2) -- (q);   % part of dV on A
+  % Columns along n = +y: from A's faces up to B's face, and from B's face down to A's faces.
+  \foreach \t in {0.2,0.4,0.6,0.8} {
+    \coordinate (s) at ($(p)!\t!(a2)$);
+    \draw[thin] (s) -- (s |- b1);
+  }
+  \foreach \t in {0.15,0.3,0.45,0.6,0.75,0.9} {
+    \coordinate (s) at ($(a2)!\t!(q)$);
+    \draw[thin] (s) -- (s |- b1);
+  }
+  % One column labelled.
+  \coordinate (x) at ($(a2)!0.3!(q)$);
+  \fill (x) circle (1.1pt) node[below, inner sep=2.5pt] {$\x$};
+  \draw[thin] ($(x)!0.5!(x |- b1)$) -- (1.3,-1.0) node[right, inner sep=1.5pt] {$\ell(\x)$};
+  % Pair normal.
+  \draw[->, very thick] (-3.4,0) -- ++(0,1.0) node[left] {$\n$};
+  % Half pressures on both ends of the column.
+  \draw[->, thick] (x) -- ++(-0.22,0.66);
+  \draw[->, thick] ($(x |- b1)+(0,0.02)$) -- ++(0,0.7) node[above, inner sep=1.5pt] {$\tfrac12 K\ell$ each};
+  % Labels
+  \node[anchor=west] at (2.3,-0.35) {$\partial\region_B$ (face of $B$ inside $A$)};
+  \draw[thin] (2.3,-0.35) -- ($(p)!0.93!(q)$);
+  \node[anchor=east] at (-1.75,-0.95) {$\partial\region_A$ (faces of $A$ inside $B$)};
+  \draw[thin] (-1.75,-0.95) -- ($(p)!0.75!(a2)$);
+  \node at (-0.62,-0.2) {$\region$};
+\end{tikzpicture}

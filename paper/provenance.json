@@ -1,0 +1,30 @@
+{
+  "_comment": "Facts about the battery that its CSV files do not carry. Read by tools/paper_results.py; the paper takes them through \\result{} keys like every other number. Sources: the owner's record of the runs for the commits and the spot check; docs/history.md for the first run of the held-out set.",
+  "commit": "2b917f6",
+  "commit_baselines": "2a52808",
+  "date": "11--12 November 2026",
+  "spot_runs": 18,
+  "spot_max_relative_difference": 3e-7,
+  "timing": {
+    "_source": "results/load.txt and scripts/bench.sh --timing: base variant, serial, median of the repeats of each run",
+    "commit": "b6bf886",
+    "date": "12 November 2026",
+    "machine": "AMD Ryzen 7 7700X (8 cores)",
+    "repeats": 5
+  },
+  "heldout_first_run": {
+    "_source": "docs/history.md, entry '2026-11-11: held-out scenarios', table of first results (base variant, Chrono). Errors as fractions of the reference, transcribed from the percentages and factors of that table.",
+    "pieces1": {"gonthier": 0.0014, "distributed": 0.00665},
+    "pieces2": {"gonthier": 0.00456, "distributed": 0.00838},
+    "pieces8": {"gonthier": 0.00456, "distributed": 0.00841},
+    "pieces64": {"gonthier": 0.07, "distributed": 0.0122},
+    "wedge": {"gonthier": 0.497, "distributed": 0.0426},
+    "restitution": {"gonthier": 0.00286, "distributed": 0.00508},
+    "oblique": {"gonthier": 0.0697, "distributed": 0.0366},
+    "edge": {"gonthier": 0.187, "distributed": 0.191},
+    "energy": {"gonthier": 0.00156, "distributed": 0.142},
+    "massratio": {"gonthier": 9000, "distributed": 9000},
+    "turntable": {"gonthier": 0.745, "distributed": 0.462},
+    "tower": {"gonthier": 84000, "distributed": 62000}
+  }
+}

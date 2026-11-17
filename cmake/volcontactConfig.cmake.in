@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(Eigen3 NO_MODULE)  # 3.4 or newer, checked when the core was built
+if(@VOLCONTACT_USES_OPENMP@)  # Needed to link a static libvolcontact.
+  find_dependency(OpenMP)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/volcontactTargets.cmake")
+check_required_components(volcontact)

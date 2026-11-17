@@ -1,0 +1,30 @@
+% Architecture of the implementation.
+\begin{tikzpicture}[
+    font=\footnotesize, >=Stealth,
+    box/.style={draw, rounded corners=1.5pt, align=center, inner sep=3pt, minimum height=7mm},
+    group/.style={draw, dashed, rounded corners=3pt, inner sep=5pt},
+  ]
+  % Core
+  \node[box, text width=24mm] (mesh) {shapes\\ box tree, BSP};
+  \node[box, text width=27mm, right=5mm of mesh] (inter) {intersection\\ $V$, $\vect{c}$, $\tens{J}$, $\n$, $\partial\region$};
+  \node[box, text width=20mm, above right=1mm and 5mm of inter] (gon) {\law{gonthier}};
+  \node[box, text width=20mm, below right=1mm and 5mm of inter] (dis) {\law{distributed}};
+  \node[box, text width=24mm, right=32mm of inter] (model) {contact model\\ pairs $\to$ wrenches};
+  \draw[->] (mesh) -- (inter);
+  \draw[->] (inter.east) -- ++(2.5mm,0) |- (gon.west);
+  \draw[->] (inter.east) -- ++(2.5mm,0) |- (dis.west);
+  \draw[->] (gon.east) -| ($(model.north)+(-4mm,0)$);
+  \draw[->] (dis.east) -| ($(model.south)+(-4mm,0)$);
+  \node[group, fit=(mesh)(inter)(gon)(dis)(model), label={[anchor=south west, inner sep=1pt]north west:core (engine-independent)}] (core) {};
+  % Engines
+  \node[box, text width=20mm, below=24mm of mesh.south west, anchor=north west] (drake) {Drake};
+  \node[box, text width=20mm, right=3mm of drake] (chrono) {Chrono};
+  \node[box, text width=20mm, right=3mm of chrono] (mujoco) {MuJoCo};
+  \node[group, fit=(drake)(chrono)(mujoco), label={[anchor=south west, inner sep=1pt]north west:engine backends (also run the native contact)}] (eng) {};
+  % Scenarios and bench
+  \node[box, text width=30mm, right=8mm of mujoco] (scn) {scenarios\\ set-up, reference, error};
+  \node[box, text width=22mm, right=5mm of scn] (bench) {battery\\ and statistics};
+  \draw[->] (scn) -- (bench);
+  \draw[->] (scn.west) -- (eng.east);
+  \draw[<->] ($(eng.north)+(0,5mm)$) -- node[right, align=left] {poses, velocities, friction state $\downarrow$\\ wrenches, next friction state $\uparrow$} (eng.north |- core.south);
+\end{tikzpicture}

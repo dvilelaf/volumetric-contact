@@ -1,0 +1,188 @@
+\section{Statistical inference and sensitivity}\label{sup:inference}
+
+% The paper cites these subsections by number (S5.1 to S5.5): keep their order.
+
+The paper reports one paragraph and one table of paired comparisons (its Section~5.10). This
+section gives the rules behind them, every pair, and how the figures move when the rules
+change. The scenarios were chosen by hand, several test the same mechanism (five are the
+friction torque of a spinning conforming contact, three a body rolling against the foundation's
+rolling resistance) and class B has five, so the bootstrap treats as exchangeable units that are
+not: the intervals and the $p$-values are descriptive.
+
+\subsection{Rules}
+
+All summaries use the base variant. For two methods on the same scenarios we report the
+geometric mean of the ratio of their errors with a 95\,\% percentile interval from 10\,000
+bootstrap resamples within class, under the following rules.
+\begin{itemize}
+\item \emph{Cap and failures.} An error above \result{rules/cap} counts as \result{rules/cap},
+  and so does a run without an error value, for whichever method it belongs to. No scenario is
+  left out. Errors below \result{rules/floor} count as \result{rules/floor}. Without the cap, a
+  run that ends with an enormous error (the two laws in \scn{massratio}, where the bodies fly
+  apart) weighs several decades, by an amount that is arbitrary, while a run that fails without
+  a value weighs nothing.
+\item \emph{Clusters.} The four \scn{pieces} scenarios are the same problem on four cuts of
+  the ground; they enter once, with the mean of their logarithmic ratios.
+\item \emph{Ties.} A scenario is won or lost only if the two errors differ by more than a
+  factor of \result{rules/tie}; otherwise it is a tie.
+\item \emph{Leave-one-out.} Every ratio is given with the range that it covers when one
+  unit is removed.
+\item \emph{Primary comparisons and multiplicity.} \result{primary/n} comparisons are tested:
+  \law{distributed} against \law{gonthier}, and each of the two against the default native
+  model of each engine in this paper (Drake hydroelastic, Chrono SMC, MuJoCo soft), on class A
+  and on classes A and B. Their bootstrap $p$-values, computed from the bootstrap distribution
+  itself and not from a sample of it, are adjusted with Holm's method over that family, and
+  ``significant'' means an adjusted $p$ below 0.05. Every other pair is exploratory and is
+  reported without a test.
+\end{itemize}
+The cap, the tie band and the family were fixed after the data had been seen: the family is a
+reduction of the number of tests, not a pre-registration. A law is compared with a native model
+on that model's engine.
+
+\subsection{Primary comparisons}
+
+Table~\ref{tab:ratios} gives the primary comparisons with their leave-one-out ranges and their
+counts of units won, tied and lost, next to the uncapped estimate, and Fig.~\ref{fig:forest}
+their intervals. Of the \result{primary/n}, \result{primary/significant} are significant after
+Holm's correction, both on classes A and B together: \law{distributed} against \law{gonthier}
+(\result{robust/distributed-vs-gonthier/A+B/full}, adjusted $p = $
+\result{robust/distributed-vs-gonthier/A+B/holm}) and against Chrono SMC
+(\result{robust/distributed-vs-smc/A+B/full}, adjusted $p = $
+\result{robust/distributed-vs-smc/A+B/holm}, close to the threshold). Two more have an
+unadjusted interval that excludes 1 and do not survive the correction: \law{distributed}
+against Drake hydroelastic (\result{robust/distributed-vs-hydro/A+B/full}) and against MuJoCo
+soft (\result{robust/distributed-vs-soft/A+B/full}). On class A alone
+\result{primary/significant/A} of the \result{primary/n/A} comparisons is significant: the two
+laws are not separated from each other (\result{robust/distributed-vs-gonthier/A/full}, with
+\result{robust/distributed-vs-gonthier/A/ties} ties in
+\result{robust/distributed-vs-gonthier/A/n}), and against the default native models their
+ratios are below 1 with intervals that reach above it (\law{distributed}:
+\result{robust/distributed-vs-hydro/A/full} against Drake hydroelastic,
+\result{robust/distributed-vs-smc/A/full} against Chrono SMC,
+\result{robust/distributed-vs-soft/A/full} against MuJoCo soft). The count of scenarios says
+more than the mean there: \law{distributed} has the smaller error by more than the tie band in
+\result{robust/distributed-vs-hydro/A/wins}, \result{robust/distributed-vs-smc/A/wins} and
+\result{robust/distributed-vs-soft/A/wins} of the \result{robust/distributed-vs-hydro/A/n}
+units (won, tied and lost: \result{robust/distributed-vs-hydro/A/wtl},
+\result{robust/distributed-vs-smc/A/wtl} and \result{robust/distributed-vs-soft/A/wtl}), and the
+scenarios that it loses, it loses by much (\scn{massratio} against the two implicit solvers,
+the sliding and rolling scenarios where a penalty or constraint model is at the floor).
+
+\begin{table}[!htbp]
+\caption{Primary comparisons: ratio of the errors of two methods on the same scenarios, base
+variant. Reported: errors capped at \result{rules/cap}, runs without a value counted at the
+cap, the \scn{pieces} scenarios one unit; $p$: bootstrap, Holm-adjusted over the
+\result{primary/n} comparisons (bold: below 0.05); leave-one-out: range of the ratio when one
+unit is removed; W/T/L: units won, tied (ratio within \result{rules/tie}) and lost by the first
+method. Uncapped: raw errors, scenarios that a method did not finish left out (their number in
+brackets), every scenario one unit}
+\label{tab:ratios}
+\generatedtable{ratios_primary}
+\end{table}
+
+\begin{figure}[!htbp]
+\centering
+\generatedfigure{forest_primary}
+\caption{The primary comparisons with their 95\,\% bootstrap intervals, as reported and
+uncapped}
+\label{fig:forest}
+\end{figure}
+
+\subsection{Exploratory comparisons}
+
+Table~\ref{tab:ratios-robust} gives every pair under the same rules, with unadjusted intervals
+and no test. On class A \law{distributed} is not separated from Drake point
+(\result{robust/distributed-vs-dpoint/A/full}) or from Chrono NSC
+(\result{robust/distributed-vs-nsc/A/full}); on classes A and B its ratios to Drake point, to
+Chrono NSC and to MuJoCo default are \result{robust/distributed-vs-dpoint/A+B/full},
+\result{robust/distributed-vs-nsc/A+B/full} and
+\result{robust/distributed-vs-mjdefault/A+B/full}. The error of \law{gonthier-thesis} is
+\result{robust/thesis-vs-gonthier/A/full} times that of \law{gonthier} on class A: the friction
+that Gonthier published, with the bristle on the material slip, is several times more accurate
+than the variant of the 2018 thesis, which loses the scenarios in which a body must be held.
+The error of \law{distributed} is \result{robust/distributed-vs-pcm/A+B/full} times that of
+\law{pcm}.
+
+\begin{table}[!htbp]
+\caption{Every pair under the rules of the primary comparisons: geometric mean of the ratio of
+the capped errors, 95\,\% bootstrap interval (unadjusted), and units won, tied and lost by the
+first method}
+\label{tab:ratios-robust}
+\generatedtable{ratios_robust}
+\end{table}
+
+\subsection{Sensitivity analyses}
+
+\emph{Without the cap.} Table~\ref{tab:ratios-first} gives the same pairs on the raw errors,
+with the scenarios that either method did not finish left out and every scenario one unit; no
+conclusion rests on it. On that estimate no interval of a law against a native model on class A
+excludes 1, and the intervals span one to two orders of magnitude: \scn{massratio} enters with
+the nearly seven decades between the error of a lost run and the floor, while the runs that the
+native models did not finish are left out. Capping the errors and counting the failures moves
+every primary ratio of a law against a native model towards the laws (on class A, from between
+\result{ratio/distributed-vs-hydro/A/gm} and \result{ratio/gonthier-vs-soft/A/gm} to between
+\result{robust/distributed-vs-hydro/A/gm} and \result{robust/gonthier-vs-soft/A/gm}) and
+narrows the intervals; the choice of rules therefore favours the laws. For \law{gonthier-thesis} against
+\law{gonthier} the uncapped ratio on class A is \result{ratio/thesis-vs-gonthier/A/full}.
+
+\emph{Leave-one-out.} Removing any one unit leaves every primary ratio of a law against a
+native model below or at 1 (Table~\ref{tab:ratios}).
+
+\emph{Reduced class A.} Table~\ref{tab:reduced} repeats the primary comparisons on class A
+without \scn{bowl}, \scn{trough}, \scn{turntable} and \scn{edge}, whose references no damped
+compliant model can meet at the $h$ and $K$ of the battery: the ratios move by less than their
+intervals, and none excludes 1. The counts within 5\,\% on the reduced class are
+\result{pass/Ar/distributed/5} for \law{distributed}, \result{pass/Ar/gonthier/5} for
+\law{gonthier}, and between \result{passn/Ar/mjdefault/5} and \result{passn/Ar/hydro/5} for the
+native models (on the whole class A, \result{pass/A/distributed/5},
+\result{pass/A/gonthier/5}, and between \result{passn/A/mjdefault/5} and
+\result{passn/A/hydro/5}; within 1\,\%, \result{passn/A/distributed/1} for \law{distributed}
+and \result{passn/A/dpoint/1} for Drake point; on class B within 5\,\%,
+\result{pass/B/distributed/5} for \law{distributed}, \result{pass/B/hydro/5} for Drake
+hydroelastic, \result{pass/B/gonthier/5} for \law{gonthier} and at most
+\result{passn/B/smc/5} for a point-contact model).
+
+\emph{Perturbed starts.} Over the eight perturbations of the initial velocities the range of
+the error relative to its median has a median over the scenarios of \result{pert/gonthier} for
+\law{gonthier} and \result{pert/distributed} for \law{distributed}: the base errors of the laws
+are representative of nearby initial conditions. Those of several native models are not
+(Section~\ref{sup:scatter}), so for them single base runs enter the ratios as draws.
+
+\begin{table}[!htbp]
+\caption{Uncapped estimate: ratio of the raw errors of two methods on the same scenarios, base
+variant: geometric mean, 95\,\% bootstrap interval, and scenarios won and lost by the first
+method (in brackets, the scenarios left out because one of the two did not finish). Bold: the
+unadjusted interval excludes 1}
+\label{tab:ratios-first}
+\generatedtable{ratios}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{The primary comparisons on class A and on class A without the four parameter-bound
+scenarios}
+\label{tab:reduced}
+\generatedtable{reduced}
+\end{table}
+
+\subsection{Runs that would settle the open points}
+
+The following would answer open points of the paper and were not done. (1) Log, for every run,
+whether the step bounds were active and the extreme ratios of the applied to the nominal
+parameters ($h$, $d$, $v_s$, stick stiffness). (2) Record the sign of the class B errors, to
+place every run against the band (the paper's Section~5.4 signs those of \scn{disk} and
+\scn{bearing} only). (3) One more decade of stiffness ($K\times100$) on class A,
+at the step that the laws need. (4) \scn{journal} at 256 segments with the climb angle
+reported, and \scn{cone} at $10K$ with 128 segments, to separate the facet sag from the
+self-excited wobble. (5) Sweeps of $d$ and $\tau$ on the scenarios that hold a body
+(\scn{push}, \scn{wedge}, \scn{tower}, \scn{stack}, \scn{tip}, \scn{hole}), and of $h$ on the
+rolling ones. (6) Native models again with reviewed configurations: Drake point with rim
+spheres on cylinder faces, MuJoCo soft on \scn{block}, repeated or better converged runs of
+Chrono NSC, and a check of the static penetration of every native model per scenario. (7) A
+bisection of the change of \law{gonthier} in \scn{energy} between the first run of the second
+set and the battery, and an energy measure that counts the contact spring. (8) The linear
+stability model with the discrete sums of \law{pcm}, to explain why it does not flutter. (9)
+The quadratures on remeshed flat faces inside the library, with their cost at equal accuracy.
+(10) Finite-element solutions for the other class B scenarios (\scn{ring}, \scn{contensou},
+\scn{cone}; the paper's Section~5.4 covers \scn{disk} and \scn{bearing}, statically), a
+dynamic one with friction, measured data for one class B case, and three to five scenarios
+written and frozen before any run, as a true out-of-sample check.

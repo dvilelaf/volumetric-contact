@@ -1,0 +1,35 @@
+% A body on a ground cut into two convex pieces: seam, columns and normals.
+\begin{tikzpicture}[scale=1.0, font=\footnotesize, >=Stealth]
+  % Ground pieces B1 and B2.
+  \fill[gray!18] (-4,-1.5) rectangle (0.6,0);
+  \fill[gray!28] (0.6,-1.5) rectangle (4,0);
+  \draw[thick] (-4,0) -- (4,0);
+  \draw (-4,-1.5) -- (-4,0) (4,-1.5) -- (4,0);
+  \draw[densely dotted] (0.6,-1.5) -- (0.6,-0.45);
+  \node at (-3.5,-1.2) {$B_1$};
+  \node at (3.5,-1.2) {$B_2$};
+  % Body A, flat bottom pressed in by 0.45.
+  \fill[gray!8] (-2.6,-0.45) rectangle (2.4,1.6);
+  \draw[thick] (-2.6,-0.45) rectangle (2.4,1.6);
+  \node at (2.05,1.3) {$A$};
+  % Overlaps with each piece.
+  \fill[pattern=north east lines, pattern color=gray!70] (-2.6,-0.45) rectangle (0.6,0);
+  \fill[pattern=north west lines, pattern color=gray!70] (0.6,-0.45) rectangle (2.4,0);
+  % Seam inside the overlap.
+  \draw[very thick, densely dashed] (0.6,-0.45) -- (0.6,0);
+  \node[anchor=north] at (0.6,-0.55) {seam};
+  % Columns of the whole bodies.
+  \foreach \xx in {-2.2,-1.8,-1.4,-1.0,-0.6,-0.2,0.2,1.0,1.4,1.8,2.2} {
+    \draw[thin] (\xx,-0.45) -- (\xx,0);
+  }
+  % Normals: with the seam (tilted) and without (law).
+  \draw[->, very thick] (-1.0,0.15) -- ++(0,1.0);
+  \draw[->, thick, gray] (-1.0,0.15) -- ++(0.28,0.96);
+  \draw[->, very thick] (1.5,0.15) -- ++(0,1.0);
+  \draw[->, thick, gray] (1.5,0.15) -- ++(-0.42,0.9);
+  \node[anchor=east, inner sep=2pt] at (-1.0,0.85) {$\n$};
+  \node[gray, anchor=west, inner sep=2pt] at (-0.62,1.2) {with the seam};
+  % Labels.
+  \node[anchor=west] at (2.6,-0.25) {$A\cap B_2$};
+  \node[anchor=east] at (-2.8,-0.25) {$A\cap B_1$};
+\end{tikzpicture}
